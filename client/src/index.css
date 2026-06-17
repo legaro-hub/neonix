@@ -1,0 +1,73 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-graphite-950 text-graphite-100 font-sans antialiased;
+    background-image:
+      radial-gradient(60rem 60rem at 80% -10%, rgba(212, 255, 58, 0.08), transparent 60%),
+      radial-gradient(40rem 40rem at -10% 10%, rgba(212, 255, 58, 0.05), transparent 55%);
+    background-attachment: fixed;
+  }
+  ::selection {
+    @apply bg-lime/30 text-white;
+  }
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-graphite-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-graphite-600;
+  }
+}
+
+@layer components {
+  .container-app {
+    @apply mx-auto w-full max-w-7xl px-5 sm:px-8;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-lime/60 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .btn-primary {
+    @apply btn bg-lime text-graphite-950 hover:bg-lime-400 hover:shadow-glow active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply btn border border-graphite-700 bg-graphite-850/60 text-graphite-100 hover:border-graphite-600 hover:bg-graphite-800;
+  }
+  .btn-outline {
+    @apply btn border border-lime/40 text-lime hover:bg-lime/10;
+  }
+
+  .card {
+    @apply rounded-2xl border border-graphite-750 bg-graphite-900/70 backdrop-blur-sm;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-graphite-700 bg-graphite-850 px-4 py-3 text-sm text-graphite-100 placeholder:text-graphite-400 transition focus:border-lime/60 focus:outline-none focus:ring-2 focus:ring-lime/20;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-graphite-300;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-graphite-700 bg-graphite-850 px-3 py-1 text-xs font-medium text-graphite-200;
+  }
+}

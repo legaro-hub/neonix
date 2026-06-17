@@ -1,0 +1,131 @@
+// Prisma schema for Neonix
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         String   @default("user")
+  timezone     String   @default("Europe/Moscow")
+  language     String   @default("ru")
+  createdAt    DateTime @default(now()) @db.Timestamptz()
+  updatedAt    DateTime @updatedAt @db.Timestamptz()
+
+  refreshTokens        RefreshToken[]
+  socialAccounts       SocialAccount[]
+  notificationSettings NotificationSettings?
+  posts                Post[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @db.Timestamptz()
+  createdAt DateTime @default(now()) @db.Timestamptz()
+  revoked   Boolean  @default(false)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model SocialAccount {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform        String   @default("telegram")
+  platformBotName String?
+  externalId      String
+  title           String
+  username        String?
+  status          String   @default("active")
+  metadata        Json?
+  linkedAt        DateTime @default(now()) @db.Timestamptz()
+
+  publications PostPublication[]
+
+  @@unique([platform, externalId, userId])
+  @@index([userId])
+  @@map("social_accounts")
+}
+
+model NotificationSettings {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailOnPublish  Boolean  @default(true)
+  emailOnFailure  Boolean  @default(true)
+  emailOnBilling  Boolean  @default(true)
+  inAppOnPublish  Boolean  @default(true)
+  inAppOnFailure  Boolean  @default(true)
+  digestEnabled   Boolean  @default(false)
+  digestDay       String   @default("mon")
+  digestHour      Int      @default(10)
+
+  @@map("notification_settings")
+}
+
+model Post {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String?
+  body        String   @default("")
+  status      String   @default("draft")
+  scheduledAt DateTime? @db.Timestamptz()
+  createdAt   DateTime @default(now()) @db.Timestamptz()
+  updatedAt   DateTime @updatedAt @db.Timestamptz()
+
+  media       MediaAsset[]
+  publications PostPublication[]
+
+  @@index([userId, scheduledAt])
+  @@map("posts")
+}
+
+model MediaAsset {
+  id        String   @id @default(uuid()) @db.Uuid
+  postId    String   @db.Uuid
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  kind      String
+  filename  String
+  mimeType  String?
+  sizeBytes Int?
+  storageKey String
+  ord       Int      @default(0)
+
+  @@index([postId])
+  @@map("media_assets")
+}
+
+model PostPublication {
+  id              String    @id @default(uuid()) @db.Uuid
+  postId          String    @db.Uuid
+  post            Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialAccountId String    @db.Uuid
+  socialAccount   SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  status          String    @default("queued")
+  scheduledAt     DateTime  @db.Timestamptz()
+  publishedAt     DateTime? @db.Timestamptz()
+  externalId      String?
+  externalUrl     String?
+  errorCode       String?
+  errorMessage    String?
+  attempts        Int       @default(0)
+
+  @@unique([postId, socialAccountId])
+  @@index([status, scheduledAt])
+  @@map("post_publications")
+}

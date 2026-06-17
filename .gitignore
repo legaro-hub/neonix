@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.db
+*.sqlite
+.DS_Store
+Thumbs.db
+tsconfig.tsbuildinfo
+server/.env
+cookies.txt
+MEMORY.md
+*.txt
