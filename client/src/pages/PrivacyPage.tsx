@@ -76,7 +76,7 @@ export function PrivacyPage() {
             <section>
               <h2 className="font-display text-lg font-semibold text-white mb-2">8. Контакты</h2>
               <p>
-                По вопросам конфиденциальности: <a href="mailto:privacy@neonix.app" className="text-lime hover:underline">privacy@neonix.app</a>
+                По вопросам конфиденциальности: <a href="mailto:privacy@neonix.online" className="text-lime hover:underline">privacy@neonix.online</a>
               </p>
             </section>
           </div>

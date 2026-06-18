@@ -93,6 +93,11 @@ export function LoginPage() {
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading ? 'Входим...' : 'Войти'}
         </button>
+        <div className="text-center">
+          <Link to="/forgot-password" className="text-sm text-graphite-400 hover:text-lime transition">
+            Забыли пароль?
+          </Link>
+        </div>
       </form>
       <p className="mt-6 text-center text-xs text-graphite-500">
         Демо: введите любые email и пароль (≥ 8 символов) — данные хранятся локально.

@@ -20,10 +20,14 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/prisma ./prisma
+RUN groupadd -r neonix && useradd -r -g neonix -m neonix
+
+COPY --from=builder --chown=neonix:neonix /app/dist ./dist
+COPY --from=builder --chown=neonix:neonix /app/node_modules ./node_modules
+COPY --from=builder --chown=neonix:neonix /app/package.json ./
+COPY --from=builder --chown=neonix:neonix /app/prisma ./prisma
+
+USER neonix
 
 EXPOSE 4000
 

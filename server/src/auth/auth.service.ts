@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -13,6 +14,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthResult, JwtPayload } from './interfaces/auth.types';
 import { parseTtlSeconds } from '../common/parse-ttl';
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +24,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly email: EmailService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResult> {
@@ -42,6 +45,7 @@ export class AuthService {
     });
 
     this.logger.log(`Registered user ${user.email}`);
+    this.email.sendWelcome(user.email, user.name ?? '').catch(() => {});
     return this.issueTokens(user.id, user.email, user.name, user.timezone);
   }
 
@@ -108,6 +112,65 @@ export class AuthService {
       createdAt: user.createdAt,
       channelsCount: user.socialAccounts.length,
     };
+  }
+
+  async forgotPassword(email: string): Promise<{ success: boolean }> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (!user) {
+      return { success: true };
+    }
+
+    await this.prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id, used: false },
+    });
+
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await this.prisma.passwordResetToken.create({
+      data: { token, userId: user.id, expiresAt },
+    });
+
+    const appUrl = this.config.get<string>('APP_URL') ?? 'https://neonix.online';
+    const resetUrl = `${appUrl}/reset-password?token=${token}`;
+
+    this.email.sendPasswordReset(user.email, user.name ?? '', resetUrl).catch(() => {});
+
+    this.logger.log(`Password reset requested for ${user.email}`);
+    return { success: true };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ success: boolean }> {
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { token },
+    });
+
+    if (!resetToken || resetToken.used || resetToken.expiresAt < new Date()) {
+      throw new BadRequestException('Недействительный или истёкший токен сброса');
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: resetToken.userId },
+        data: { passwordHash: newHash },
+      }),
+      this.prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { used: true },
+      }),
+      this.prisma.refreshToken.updateMany({
+        where: { userId: resetToken.userId, revoked: false },
+        data: { revoked: true },
+      }),
+    ]);
+
+    this.logger.log(`Password reset completed for user ${resetToken.userId}`);
+    return { success: true };
   }
 
   private async issueTokens(

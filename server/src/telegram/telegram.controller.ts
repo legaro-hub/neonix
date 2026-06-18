@@ -3,6 +3,8 @@ import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { SocialAccountsService } from '../social-accounts/social-accounts.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { timingSafeEqual } from 'crypto';
+import type { Request } from 'express';
 
 interface TgUpdate {
   update_id: number;
@@ -34,8 +36,11 @@ export class TelegramController {
   async handleWebhook(@Req() req: Request, @Body() update: TgUpdate) {
     const secret = this.config.get<string>('TG_WEBHOOK_SECRET');
     if (secret) {
-      const headerSecret = req.headers.get('x-telegram-bot-api-secret-token');
-      if (headerSecret !== secret) {
+      const headerSecret = (req.headers as unknown as Record<string, string>)['x-telegram-bot-api-secret-token'];
+      if (!headerSecret) return { ok: false };
+      const a = Buffer.from(headerSecret);
+      const b = Buffer.from(secret);
+      if (a.length !== b.length || !timingSafeEqual(a, b)) {
         return { ok: false };
       }
     }
@@ -92,9 +97,9 @@ export class TelegramController {
       return;
     }
 
-    const pending = await this.socialAccounts.findPendingLinkByChatId(chat.id);
+    const pending = await this.socialAccounts.findPendingLinkByTelegramUserId(member.from.id);
     if (!pending) {
-      this.logger.log(`No pending link for chat ${chat.id}, skipping`);
+      this.logger.log(`No pending link for user ${member.from.id} (chat ${chat.id})`);
       return;
     }
 
@@ -103,7 +108,11 @@ export class TelegramController {
       let memberCount: number | undefined;
       if (botToken && botToken !== 'REPLACE_WITH_REAL_TOKEN') {
         try {
-          const res = await fetch(`https://api.telegram.org/bot${botToken}/getChatMemberCount?chat_id=${chat.id}`);
+          const res = await fetch(`https://api.telegram.org/bot${botToken}/getChatMemberCount`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chat.id }),
+          });
           const data = await res.json() as { result?: number };
           memberCount = data.result;
         } catch { /* ignore */ }

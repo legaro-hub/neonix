@@ -8,6 +8,9 @@ import { UsersModule } from './users/users.module';
 import { SocialAccountsModule } from './social-accounts/social-accounts.module';
 import { TelegramModule } from './telegram/telegram.module';
 import { PostsModule } from './posts/posts.module';
+import { MediaModule } from './media/media.module';
+import { EmailModule } from './email/email.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -30,6 +33,9 @@ import { PostsModule } from './posts/posts.module';
     SocialAccountsModule,
     TelegramModule,
     PostsModule,
+    MediaModule,
+    EmailModule,
+    AnalyticsModule,
   ],
   providers: [
     {

@@ -37,6 +37,7 @@ services:
     command: sh -c "npx prisma migrate deploy && npx prisma generate && npm run start:dev"
     volumes:
       - ./server/src:/app/src
+      - ./server/uploads:/app/uploads
 
   client:
     image: node:20-alpine

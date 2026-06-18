@@ -5,12 +5,188 @@ const POSTS: Record<string, {
   title: string;
   date: string;
   tag: string;
+  image: string;
+  color: string;
   content: JSX.Element;
 }> = {
+  'update-june-18': {
+    title: 'Обновление: восстановление пароля, исправление багов и 78 тестов',
+    date: '18 июня 2026',
+    tag: 'Обновления',
+    image: '🔐',
+    color: '#1a1f2e',
+    content: (
+      <>
+        <p>
+          Привет! Выкатили крупное обновление Neonix. Три главных блока: восстановление пароля,
+          исправление критических багов и.unit-тесты для ключевых модулей. Плюс домен переехал
+          на <code>neonix.online</code>.
+        </p>
+
+        <h2>Восстановление пароля</h2>
+        <p>
+          Теперь если вы забыли пароль — не проблема. На странице входа появилась ссылка
+          «Забыли пароль?». Вводите email, получаете письмо со ссылкой, задаёте новый пароль.
+          Ссылка действительна 1 час, одноразовая. Все предыдущие сессии автоматически
+          завершаются при сбросе.
+        </p>
+        <ul>
+          <li><code>POST /api/auth/forgot-password</code> — отправляет письмо с токеном</li>
+          <li><code>POST /api/auth/reset-password</code> — меняет пароль по токену</li>
+          <li>Rate limit: 3 запроса на сброс в 5 минут</li>
+          <li>Защита от email enumeration — одинаковый ответ для существующего и несуществующего email</li>
+        </ul>
+
+        <h2>Исправленные баги</h2>
+        <p>Мы нашли и починили 6 багов, некоторые были критическими:</p>
+        <ul>
+          <li>
+            <strong>Retry backoff игнорировался</strong> — воркер публикаций пересчитывал время
+            повтора, но не обновлял <code>scheduledAt</code> в базе. Посты повторялись
+            каждые 30 секунд вместо 2/4/8 минут.
+          </li>
+          <li>
+            <strong>sendMediaGroup caption</strong> — заголовок альбома отправлялся на уровне
+            FormData, а Telegram ожидает его только на первом элементе. Капшн тихо игнорировался.
+          </li>
+          <li>
+            <strong>HTML-инъекция в email</strong> — пользовательские строки (имя, заголовок
+            поста, название канала) интерполировались в HTML без экранирования.
+            Теперь все строки проходят <code>escapeHtml()</code>.
+          </li>
+          <li>
+            <strong>Нет проверки ownership медиа</strong> — любой авторизованный пользователь
+            мог загружать/удалять файлы чужих постов, зная ID. Теперь проверяется
+            <code>post.userId</code>.
+          </li>
+          <li>
+            <strong>Динамический import('fs')</strong> — блокировал event loop при чтении
+            больших файлов. Заменён на статический импорт.
+          </li>
+          <li>
+            <strong>Email-уведомления не были подключены</strong> — шаблоны существовали,
+            но воркер не вызывал <code>sendPublicationSuccess</code>/
+            <code>sendPublicationFailed</code>. Теперь отправляются автоматически.
+          </li>
+        </ul>
+
+        <h2>Unit-тесты</h2>
+        <p>
+          Написали 58 новых unit-тестов для трёх ключевых модулей. Всего теперь 78 тестов
+          в 6 наборах:
+        </p>
+        <ul>
+          <li><strong>PostsService</strong> (14 тестов) — CRUD, календарь, bulk, проверка ownership</li>
+          <li><strong>SocialAccountsService</strong> (24 теста) — коды привязки, каналы, pending links</li>
+          <li><strong>UsersService</strong> (20 тестов) — профиль, смена пароля, уведомления</li>
+          <li><strong>CaptchaService</strong> (6 тестов) — генерация, верификация, уникальность</li>
+          <li><strong>EmailService</strong> (7 тестов) — все шаблоны, graceful fallback без SMTP</li>
+          <li><strong>parseTtl</strong> (7 тестов) — парсинг секунд/минут/часов/дней</li>
+        </ul>
+
+        <div style={{borderRadius:'12px',border:'1px solid rgba(212,255,58,0.2)',background:'rgba(212,255,58,0.05)',padding:'16px',margin:'24px 0'}}>
+          <p style={{fontSize:'14px',color:'#d2d6dc'}}>
+            <b style={{color:'#d4ff3a'}}>🔒 Домен:</b> Neonix теперь доступен на{' '}
+            <a href="https://neonix.online" style={{color:'#d4ff3a',textDecoration:'underline'}} target="_blank" rel="noopener noreferrer">neonix.online</a>.
+            Почта: no-reply@neonix.online, support@neonix.online.
+          </p>
+        </div>
+
+        <h2>Что дальше</h2>
+        <ul>
+          <li>Аналитика — просмотры, реакции, экспорт в CSV</li>
+          <li>Биллинг — тарифы Free / Pro / Business, оплата через ЮKassa</li>
+          <li>Мобильная навигация — hamburger menu для смартфонов</li>
+        </ul>
+
+        <p>
+          Спасибо, что используете Neonix! Если нашли баг или есть идеи — пишите.
+        </p>
+      </>
+    ),
+  },
+
+  'update-may': {
+    title: 'Обновление: WYSIWYG-редактор, хранилище медиа и Telegram-превью',
+    date: '17 июня 2026',
+    tag: 'Обновления',
+    image: '✏️',
+    color: '#1a2e1a',
+    content: (
+      <>
+        <p>
+          Привет! Сегодня мы выкатили крупное обновление Neonix.
+          Три главных фичи, которые сделают работу с постами заметно приятнее.
+        </p>
+
+        <h2>WYSIWYG-редактор</h2>
+        <p>
+          Раньше вы писали Markdown в textarea, а предпросмотр смотрели отдельно.
+          Теперь форматирование отображается <b>прямо в поле ввода</b> — жирный, курсив,
+          ссылки, цитаты, списки. Нажимаете <b>B</b> — текст сразу становится жирным.
+          Никаких звёздочек и подчёркиваний при вводе.
+        </p>
+        <p>
+          Кнопки тулбара работают через <code>contentEditable</code> —
+          как в любом современном редакторе. Выделите текст, нажмите кнопку — готово.
+          Всё, что вы видите, — так и увидит подписчик в Telegram.
+        </p>
+
+        <h2>Хранилище медиа</h2>
+        <p>
+          Теперь можно загружать изображения и видео прямо в пост.
+          Поддерживаются JPG, PNG, WebP, GIF и MP4 (до 50 МБ).
+          До 10 файлов на пост — с превью и удалением.
+        </p>
+        <p>
+          Файлы хранятся в изолированном Docker-томе, кешируются на год.
+          В будущем планируем переключиться на S3 для масштабирования.
+        </p>
+
+        <h2>Telegram-превью</h2>
+        <p>
+          В разделе «Посты» теперь есть кнопка 👁 — открывает
+          предпросмотр поста <b>в точном стиле Telegram</b>:
+          тёмный фон <code style={{background:'#1a1d23',padding:'1px 4px',borderRadius:'4px',color:'#d4ff3a',fontSize:'0.9em'}}>#182533</code>,
+          пузырь сообщения, галерея медиа, статусы каналов.
+        </p>
+        <p>
+          Это не «как в Telegram» — это <b>именно Telegram</b>.
+          Мы воспроизвели цвета, типографику и компоновку.
+          Теперь вы точно знаете, как будет выглядеть пост до публикации.
+        </p>
+
+        <h2>Что ещё</h2>
+        <ul>
+          <li>Массовая загрузка теперь в формате <b>Excel</b> (.xlsx) вместо TSV</li>
+          <li>Раздел «Посты» с фильтрами по статусу и каналам</li>
+          <li>Кликабельные посты — открывают редактор</li>
+          <li>Аудит безопасности: исправлены webhook secret, race conditions, утечки памяти</li>
+          <li>Воркер публикаций работает каждые 30 секунд</li>
+        </ul>
+
+        <div style={{borderRadius:'12px',border:'1px solid rgba(212,255,58,0.2)',background:'rgba(212,255,58,0.05)',padding:'16px',margin:'24px 0'}}>
+          <p style={{fontSize:'14px',color:'#d2d6dc'}}>
+            <b style={{color:'#d4ff3a'}}>💬 Следите за обновлениями:</b>{' '}
+            <a href="https://t.me/eb4soft" style={{color:'#d4ff3a',textDecoration:'underline'}} target="_blank" rel="noopener noreferrer">Telegram-канал</a>{' '}
+            •{' '}
+            <a href="https://boosty.to/eb4soft" style={{color:'#d4ff3a',textDecoration:'underline'}} target="_blank" rel="noopener noreferrer">Блог на Boosty</a>
+          </p>
+        </div>
+
+        <p>
+          Спасибо, что используете Neonix! Если есть идеи или баги — пишите.
+          Мы читаем каждый отзыв.
+        </p>
+      </>
+    ),
+  },
   launch: {
     title: 'Neonix запущен! Планируйте посты в Telegram автоматически',
     date: '16 июня 2026',
     tag: 'Новости',
+    image: '🚀',
+    color: '#2e1a2e',
     content: (
       <>
         <p>
@@ -94,6 +270,8 @@ const POSTS: Record<string, {
     title: 'Telegram-боты для SMM: полное руководство',
     date: '16 июня 2026',
     tag: 'Гайд',
+    image: '🤖',
+    color: '#1a2e2e',
     content: (
       <>
         <p>
@@ -179,6 +357,8 @@ const POSTS: Record<string, {
     title: 'Когда публиковать посты: анализ лучших времени для Telegram',
     date: '16 июня 2026',
     tag: 'Аналитика',
+    image: '📊',
+    color: '#2e2e1a',
     content: (
       <>
         <p>

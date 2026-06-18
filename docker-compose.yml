@@ -2,48 +2,89 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: neonix
-      POSTGRES_PASSWORD: neonix_dev
-      POSTGRES_DB: neonix
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-neonix}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U neonix -d neonix"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-neonix}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
-    ports:
-      - "4000:4000"
+    expose:
+      - "4000"
     environment:
       PORT: 4000
-      NODE_ENV: development
-      DATABASE_URL: postgresql://neonix:neonix_dev@postgres:5432/neonix?schema=public
-      CORS_ORIGIN: http://localhost:3000,http://localhost:5173
-      JWT_ACCESS_SECRET: dev_access_secret_change_in_prod_9f8a2c
-      JWT_REFRESH_SECRET: dev_refresh_secret_change_in_prod_3b7d1e
-      ACCESS_TTL: 15m
-      REFRESH_TTL: 30d
-      TG_BOT_NAME: manager_neonix_bot
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-neonix}?schema=public
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://neonix.online}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?JWT_ACCESS_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      ACCESS_TTL: ${ACCESS_TTL:-15m}
+      REFRESH_TTL: ${REFRESH_TTL:-30d}
+      TG_BOT_NAME: ${TG_BOT_NAME:-manager_neonix_bot}
+      TG_BOT_TOKEN: ${TG_BOT_TOKEN}
+      TG_WEBHOOK_SECRET: ${TG_WEBHOOK_SECRET}
+      TG_API_ID: ${TG_API_ID}
+      TG_API_HASH: ${TG_API_HASH}
+      EMAIL_FROM: ${EMAIL_FROM:-"Neonix <no-reply@neonix.online>"}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      APP_URL: ${APP_URL:-https://neonix.online}
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - uploads:/app/uploads
     command: sh -c "npx prisma migrate deploy && node dist/main.js"
+    restart: unless-stopped
 
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
-    ports:
-      - "3080:3000"
+    expose:
+      - "3000"
     depends_on:
       - server
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - client
+    restart: unless-stopped
+
+  # === MailPit SMTP (dev + relay) ===
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
+    environment:
+      - MP_SMTP_AUTH_ACCEPT_ANY=1
+      - MP_SMTP_AUTH_ALLOW_INSECURE=1
+      - MP_UI_BIND_ADDR=0.0.0.0:8025
 
 volumes:
   pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:

@@ -87,3 +87,52 @@ export interface PostPublication {
     platform: string;
   };
 }
+
+export interface AnalyticsOverview {
+  totalPosts: number;
+  totalPublications: number;
+  channels: number;
+  byStatus: { draft: number; queued: number; in_progress: number; published: number; failed: number };
+  successRate: number;
+}
+
+export interface AnalyticsTimeline {
+  date: string;
+  count: number;
+}
+
+export interface AnalyticsChannel {
+  id: string;
+  title: string;
+  username: string | null;
+  total: number;
+  published: number;
+  failed: number;
+  queued: number;
+  successRate: number;
+}
+
+export interface AnalyticsPost {
+  id: string;
+  title: string;
+  body: string;
+  status: string;
+  scheduledAt: string | null;
+  createdAt: string;
+  mediaCount: number;
+  channels: string[];
+  published: number;
+  failed: number;
+  total: number;
+}
+
+export interface ChannelStats {
+  id: string;
+  title: string;
+  username: string | null;
+  externalId: string;
+  currentMembers: number | null;
+  description: string | null;
+  memberHistory: Array<{ date: string; members: number | null }>;
+  publications: { total: number; published: number };
+}

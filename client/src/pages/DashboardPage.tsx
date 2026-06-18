@@ -10,6 +10,8 @@ export function DashboardPage() {
   const [linkCode, setLinkCode] = useState<{ code: string; botName: string; expiresAt: string } | null>(null);
   const [linking, setLinking] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [scheduledCount, setScheduledCount] = useState(0);
+  const [publishedCount, setPublishedCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -22,6 +24,27 @@ export function DashboardPage() {
       } finally {
         if (active) setLoadingChannels(false);
       }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const posts = await api.getPosts();
+        if (!active) return;
+        let scheduled = 0;
+        let published = 0;
+        for (const p of posts) {
+          for (const pub of p.publications) {
+            if (pub.status === 'queued' || pub.status === 'in_progress') scheduled++;
+            if (pub.status === 'published') published++;
+          }
+        }
+        setScheduledCount(scheduled);
+        setPublishedCount(published);
+      } catch { /* ignore */ }
     })();
     return () => { active = false; };
   }, []);
@@ -124,9 +147,9 @@ export function DashboardPage() {
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {[
-            { icon: '📅', label: 'Запланировано', value: '0' },
-            { icon: '⚡', label: 'Опубликовано', value: '0' },
-            { icon: '📊', label: 'Средний охват', value: '—' },
+            { icon: '📅', label: 'Запланировано', value: String(scheduledCount) },
+            { icon: '⚡', label: 'Опубликовано', value: String(publishedCount) },
+            { icon: '📊', label: 'Каналов', value: String(activeChannels.length) },
           ].map((s) => (
             <div key={s.label} className="card p-5">
               <div className="flex items-center gap-3">
@@ -143,7 +166,7 @@ export function DashboardPage() {
         </div>
 
         <div className="mt-10 rounded-xl border border-dashed border-graphite-700 px-5 py-4 text-center text-sm text-graphite-400">
-          🚧 Календарь, редактор постов и аналитика появятся в следующих итерациях MVP.
+          💡 Используйте календарь для планирования постов и редактор для создания нового контента.
         </div>
       </main>
 

@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { CaptchaService } from './captcha.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/password-reset.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RequestUser } from './strategies/jwt.strategy';
 import { AuthResult } from './interfaces/auth.types';
@@ -75,13 +76,25 @@ export class AuthController {
     return this.auth.getMe(req.user.id);
   }
 
+  @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 300000 } })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.auth.forgotPassword(dto.email);
+  }
+
+  @Post('reset-password')
+  @Throttle({ default: { limit: 5, ttl: 300000 } })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.auth.resetPassword(dto.token, dto.newPassword);
+  }
+
   private setRefreshCookie(res: Response, result: AuthResult) {
     const refreshTtl = parseTtlSeconds(this.config.get<string>('REFRESH_TTL') ?? '30d', 2592000);
     const isProd = this.config.get<string>('NODE_ENV') === 'production';
     res.cookie(REFRESH_COOKIE, result.refreshToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'lax',
+      sameSite: 'strict',
       maxAge: refreshTtl * 1000,
       path: '/api/auth',
     });

@@ -1,0 +1,12 @@
+# Caddyfile для Neonix
+# Production: раскомментируйте блок neonix.online и закомментируйте :80
+
+# Production (TLS):
+# neonix.online {
+#     reverse_proxy client:3000
+# }
+
+# Development (без TLS):
+:80 {
+    reverse_proxy client:3000
+}

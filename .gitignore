@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .env
+.env.production
+.env.*
 *.db
 *.sqlite
 .DS_Store
@@ -10,3 +12,11 @@ server/.env
 cookies.txt
 MEMORY.md
 *.txt
+.mimocode/
+sessions/
+uploads/
+mailserver-data/
+mailserver.env
+server/uploads/
+server/sessions/
+server/q.sql

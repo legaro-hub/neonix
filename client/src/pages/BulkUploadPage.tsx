@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
 import { Sidebar } from '../components/Sidebar';
 import { api, HttpError } from '../lib/api';
 import type { SocialAccount } from '../lib/types';
@@ -39,20 +40,39 @@ export function BulkUploadPage() {
   };
 
   const downloadTemplate = () => {
-    const header = 'Заголовок\tТекст поста\tДата (ГГГГ-ММ-ДД)\tВремя (ЧЧ:ММ)\tКаналы (через запятую)';
-    const example1 = 'Анонс вебинара\tПриглашаем на вебинар по SMM! 15 июня в 19:00.\t2026-06-20\t10:00\tМой канал, Новости';
-    const example2 = 'Технические работы\tЗавтра с 2:00 до 5:00 будет профилактика.\t2026-06-21\t09:00\tВажное';
-    const example3 = '\tПросто текст без заголовка\t2026-06-22\t14:30\tМой канал';
-    const hint = '# Подсказки:\n# - Дата в формате ГГГГ-ММ-ДД\n# - Время в формате ЧЧ:ММ (24-часовой)\n# - Каналы через запятую, точное название как в панели\n# - Заголовок необязателен (оставьте пустым)\n# - Текст поддерживает Markdown: *жирный*, _курсив_, `код`, [ссылка](url)';
+    const wb = XLSX.utils.book_new();
 
-    const content = `${header}\n${example1}\n${example2}\n${example3}\n\n${hint}`;
-    const blob = new Blob(['\uFEFF' + content], { type: 'text/tab-separated-values;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'neonix_posts_template.tsv';
-    a.click();
-    URL.revokeObjectURL(url);
+    const headers = ['Заголовок', 'Текст поста', 'Дата (ГГГГ-ММ-ДД)', 'Время (ЧЧ:ММ)', 'Каналы (через запятую)'];
+    const examples = [
+      ['Анонс вебинара', 'Приглашаем на вебинар по SMM! 15 июня в 19:00.', '2026-06-20', '10:00', 'Мой канал, Новости'],
+      ['Технические работы', 'Завтра с 2:00 до 5:00 будет профилактика.', '2026-06-21', '09:00', 'Важное'],
+      ['', 'Просто текст без заголовка', '2026-06-22', '14:30', 'Мой канал'],
+    ];
+
+    const wsData = [
+      headers,
+      ...examples,
+      [],
+      ['# Подсказки:', '', '', '', ''],
+      ['# - Дата в формате ГГГГ-ММ-ДД', '', '', '', ''],
+      ['# - Время в формате ЧЧ:ММ (24-часовой)', '', '', '', ''],
+      ['# - Каналы через запятую, точное название как в панели', '', '', '', ''],
+      ['# - Заголовок необязателен (оставьте пустым)', '', '', '', ''],
+      ['# - Текст поддерживает Markdown: *жирный*, _курсив_, `код`, [ссылка](url)', '', '', '', ''],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    ws['!cols'] = [
+      { wch: 30 },
+      { wch: 60 },
+      { wch: 18 },
+      { wch: 12 },
+      { wch: 35 },
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Посты');
+    XLSX.writeFile(wb, 'neonix_posts_template.xlsx');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,26 +81,29 @@ export function BulkUploadPage() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      const text = reader.result as string;
-      const lines = text.split('\n').filter((l) => l.trim() && !l.startsWith('#'));
-      if (lines.length < 2) return;
+      const data = new Uint8Array(reader.result as ArrayBuffer);
+      const wb = XLSX.read(data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<string[]>(ws, { header: 1 });
+
+      if (rows.length < 2) return;
 
       const parsed: BulkRow[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split('\t');
-        if (cols.length >= 4) {
-          parsed.push({
-            title: cols[0]?.trim() || '',
-            body: cols[1]?.trim() || '',
-            date: cols[2]?.trim() || '',
-            time: cols[3]?.trim() || '10:00',
-            channels: cols[4]?.trim() || '',
-          });
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 4) continue;
+        const title = String(row[0] || '').trim();
+        const body = String(row[1] || '').trim();
+        const date = String(row[2] || '').trim();
+        const time = String(row[3] || '10:00').trim();
+        const channels = String(row[4] || '').trim();
+        if (body && date && !title.startsWith('#')) {
+          parsed.push({ title, body, date, time, channels });
         }
       }
       setRows(parsed);
     };
-    reader.readAsText(file, 'utf-8');
+    reader.readAsArrayBuffer(file);
   };
 
   const submitAll = async () => {
@@ -138,7 +161,7 @@ export function BulkUploadPage() {
               <input
                 ref={fileRef}
                 type="file"
-                accept=".tsv,.csv,.txt"
+                accept=".xlsx,.xls,.csv"
                 className="hidden"
                 onChange={handleFileUpload}
               />

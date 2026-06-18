@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   Logger,
+  OnModuleInit,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -19,12 +21,46 @@ const PENDING_LINKS = new Map<
 >();
 
 const CODE_TTL_MS = 10 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
 
 @Injectable()
-export class SocialAccountsService {
+export class SocialAccountsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SocialAccountsService.name);
+  private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleInit() {
+    this.cleanupTimer = setInterval(() => this.cleanup(), CLEANUP_INTERVAL_MS);
+  }
+
+  onModuleDestroy() {
+    if (this.cleanupTimer) clearInterval(this.cleanupTimer);
+  }
+
+  private cleanup() {
+    const now = Date.now();
+    let linkCount = 0;
+    let pendingCount = 0;
+
+    for (const [key, val] of LINK_CODES) {
+      if (now - val.createdAt > CODE_TTL_MS) {
+        LINK_CODES.delete(key);
+        linkCount++;
+      }
+    }
+
+    for (const [key, val] of PENDING_LINKS) {
+      if (now - val.createdAt > 30 * 60 * 1000) {
+        PENDING_LINKS.delete(key);
+        pendingCount++;
+      }
+    }
+
+    if (linkCount > 0 || pendingCount > 0) {
+      this.logger.debug(`Cleanup: removed ${linkCount} link codes, ${pendingCount} pending links`);
+    }
+  }
 
   async generateLinkCode(userId: string) {
     let count = 0;
@@ -56,7 +92,20 @@ export class SocialAccountsService {
   }
 
   async storePendingLink(userId: string, chatId: number, telegramUserId?: number) {
+    if (telegramUserId) {
+      PENDING_LINKS.set(telegramUserId, { userId, telegramUserId, createdAt: Date.now() });
+    }
     PENDING_LINKS.set(chatId, { userId, telegramUserId, createdAt: Date.now() });
+  }
+
+  async findPendingLinkByTelegramUserId(telegramUserId: number) {
+    const entry = PENDING_LINKS.get(telegramUserId);
+    if (!entry) return null;
+    if (Date.now() - entry.createdAt > 30 * 60 * 1000) {
+      PENDING_LINKS.delete(telegramUserId);
+      return null;
+    }
+    return entry;
   }
 
   async findPendingLinkByChatId(chatId: number) {

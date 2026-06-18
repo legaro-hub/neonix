@@ -1,8 +1,55 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { api, HttpError } from '../lib/api';
 import type { SocialAccount } from '../lib/types';
+
+function mdToHtml(md: string): string {
+  let html = md;
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  html = html.replace(/^### (.+)$/gm, '<b style="font-size:1.1em">$1</b>');
+  html = html.replace(/^## (.+)$/gm, '<b style="font-size:1.2em">$1</b>');
+  html = html.replace(/^# (.+)$/gm, '<b style="font-size:1.3em">$1</b>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+  html = html.replace(/\*(.+?)\*/g, '<i>$1</i>');
+  html = html.replace(/_(.+?)_/g, '<i>$1</i>');
+  html = html.replace(/`([^`]+)`/g, '<code style="background:#1a1d23;padding:1px 4px;border-radius:4px;color:#d4ff3a;font-size:0.9em">$1</code>');
+  html = html.replace(/```([\s\S]*?)```/g, '<pre style="background:#1a1d23;padding:8px;border-radius:8px;overflow-x:auto;font-size:0.85em;margin:8px 0"><code>$1</code></pre>');
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, linkText, url) => {
+    const safeUrl = url.replace(/javascript:/gi, '').replace(/data:/gi, '').replace(/vbscript:/gi, '');
+    return `<a href="${safeUrl}" style="color:#d4ff3a;text-decoration:underline" target="_blank" rel="noopener">${linkText}</a>`;
+  });
+  html = html.replace(/^&gt;\s?(.*)$/gm, '<blockquote style="border-left:3px solid #2e343d;padding-left:12px;color:#a8aeb8;margin:8px 0">$1</blockquote>');
+  html = html.replace(/^---$/gm, '<hr style="border:none;border-top:1px solid #232830;margin:12px 0">');
+  html = html.replace(/^[-*]\s+(.*)$/gm, '• $1');
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+function htmlToMd(html: string): string {
+  let md = html;
+  md = md.replace(/<br\s*\/?>/gi, '\n');
+  md = md.replace(/<b style="font-size:1\.3em">(.*?)<\/b>/gi, '# $1');
+  md = md.replace(/<b style="font-size:1\.2em">(.*?)<\/b>/gi, '## $1');
+  md = md.replace(/<b style="font-size:1\.1em">(.*?)<\/b>/gi, '### $1');
+  md = md.replace(/<b>(.*?)<\/b>/gi, '**$1**');
+  md = md.replace(/<i>(.*?)<\/i>/gi, '*$1*');
+  md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
+  md = md.replace(/<pre[^>]*><code>([\s\S]*?)<\/code><\/pre>/gi, '```\n$1\n```');
+  md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, '[$2]($1)');
+  md = md.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gi, '> $1');
+  md = md.replace(/<hr[^>]*\/?>/gi, '---');
+  md = md.replace(/<div[^>]*>/gi, '\n');
+  md = md.replace(/<\/div>/gi, '');
+  md = md.replace(/<[^>]+>/g, '');
+  md = md.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+  md = md.replace(/\n{3,}/g, '\n\n');
+  return md.trim();
+}
+
+type MediaItem =
+  | { kind: 'existing'; id: string; filename: string; url: string; mediaKind: string }
+  | { kind: 'uploading'; file: File; preview: string; mediaKind: string; status: 'uploading' | 'error' };
 
 export function PostEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,8 +65,11 @@ export function PostEditorPage() {
   const [channels, setChannels] = useState<SocialAccount[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
-  const [mediaPreview, setMediaPreview] = useState<Array<{ file: File; preview: string; kind: string }>>([]);
+  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [draftPostId, setDraftPostId] = useState<string | null>(id || null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -30,39 +80,129 @@ export function PostEditorPage() {
           const post = await api.getPost(id);
           setTitle(post.title || '');
           setBody(post.body);
+          if (editorRef.current) editorRef.current.innerHTML = mdToHtml(post.body);
           if (post.scheduledAt) {
             setScheduledDate(post.scheduledAt.slice(0, 10));
             setScheduledTime(post.scheduledAt.slice(11, 16));
           }
           setSelectedChannels(post.publications.map((p) => p.socialAccount.id));
+          setMedia(post.media.map((m) => ({
+            kind: 'existing' as const,
+            id: m.id,
+            filename: m.filename,
+            url: `/api/media/file/${m.id}`,
+            mediaKind: m.kind,
+          })));
         }
       } catch { /* ignore */ }
     })();
   }, [id, isEdit]);
 
-  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const syncBody = useCallback(() => {
+    if (editorRef.current) {
+      const html = editorRef.current.innerHTML;
+      const md = htmlToMd(html);
+      setBody(md);
+    }
+  }, []);
+
+  const execCmd = (cmd: string, val?: string) => {
+    document.execCommand(cmd, false, val);
+    editorRef.current?.focus();
+    syncBody();
+  };
+
+  const insertMd = (before: string, after: string) => {
+    const sel = window.getSelection();
+    if (!sel || !editorRef.current) return;
+    const range = sel.getRangeAt(0);
+    const selected = range.toString();
+    const text = before + selected + after;
+    document.execCommand('insertText', false, text);
+    syncBody();
+  };
+
+  const insertLink = () => {
+    const url = prompt('Введите URL ссылки:');
+    if (url) {
+      const safeUrl = url.replace(/javascript:/gi, '').replace(/data:/gi, '').replace(/vbscript:/gi, '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const sel = window.getSelection();
+      const text = sel?.toString() || 'ссылка';
+      document.execCommand('insertHTML', false, `<a href="${safeUrl}" style="color:#d4ff3a;text-decoration:underline" target="_blank">${text}</a>`);
+      syncBody();
+    }
+  };
+
+  const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (mediaFiles.length + files.length > 10) {
+    const existingCount = media.filter((m) => m.kind === 'existing').length;
+    const uploadingCount = media.filter((m) => m.kind === 'uploading').length;
+    if (existingCount + uploadingCount + files.length > 10) {
       setError('Максимум 10 медиафайлов');
       return;
     }
-    const newFiles = files.slice(0, 10 - mediaFiles.length);
-    setMediaFiles((prev) => [...prev, ...newFiles]);
 
-    newFiles.forEach((file) => {
-      const kind = file.type.startsWith('video/') ? 'video' : file.type === 'image/gif' ? 'gif' : 'image';
+    for (const file of files) {
+      const mediaKind = file.type.startsWith('video/') ? 'video' : file.type === 'image/gif' ? 'gif' : 'image';
       const reader = new FileReader();
-      reader.onload = () => {
-        setMediaPreview((prev) => [...prev, { file, preview: reader.result as string, kind }]);
-      };
-      reader.readAsDataURL(file);
-    });
+      const preview = await new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+
+      const idx = media.length;
+      setMedia((prev) => [...prev, { kind: 'uploading', file, preview, mediaKind, status: 'uploading' }]);
+      autoUploadFile(file, idx);
+    }
+    e.target.value = '';
+  };
+
+  const autoUploadFile = async (file: File, index: number) => {
+    let postId = draftPostId;
+    if (!postId) {
+      try {
+        const post = await api.createPost({ body: ' ', socialAccountIds: [] });
+        postId = post.id;
+        setDraftPostId(postId);
+      } catch {
+        setError('Не удалось создать черновик для загрузки файла');
+        setMedia((prev) => prev.map((m, i) => i === index && m.kind === 'uploading' ? { ...m, status: 'error' as const } : m));
+        return;
+      }
+    }
+    try {
+      const asset = await api.uploadMedia(postId, file);
+      setMedia((prev) => prev.map((m, i) => i === index && m.kind === 'uploading'
+        ? { kind: 'existing' as const, id: asset.id, filename: asset.filename, url: asset.url, mediaKind: asset.kind }
+        : m));
+    } catch {
+      setMedia((prev) => prev.map((m, i) => i === index && m.kind === 'uploading' ? { ...m, status: 'error' as const } : m));
+      setError(`Ошибка загрузки ${file.name}`);
+    }
   };
 
   const removeMedia = (index: number) => {
-    setMediaFiles((prev) => prev.filter((_, i) => i !== index));
-    setMediaPreview((prev) => prev.filter((_, i) => i !== index));
+    const item = media[index];
+    if (!item) return;
+    if (item.kind === 'existing') {
+      api.deleteMedia(item.id).catch(() => {});
+    }
+    setMedia((prev) => prev.filter((_, i) => i !== index));
   };
+
+  const onDragStart = (index: number) => setDragIdx(index);
+  const onDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (dragIdx === null || dragIdx === index) return;
+    setMedia((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(dragIdx, 1);
+      next.splice(index, 0, moved);
+      return next;
+    });
+    setDragIdx(index);
+  };
+  const onDragEnd = () => setDragIdx(null);
 
   const toggleChannel = (chId: string) => {
     setSelectedChannels((prev) =>
@@ -72,20 +212,23 @@ export function PostEditorPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    syncBody();
     if (!body.trim() && selectedChannels.length === 0) {
       setError('Введите текст или выберите каналы');
       return;
     }
+    const hasUploading = media.some((m) => m.kind === 'uploading');
+    if (hasUploading) {
+      setError('Дождитесь загрузки всех файлов');
+      return;
+    }
     setSaving(true);
     setError(null);
-
-    const scheduledAt = scheduledDate
-      ? `${scheduledDate}T${scheduledTime}:00`
-      : undefined;
-
+    const scheduledAt = scheduledDate ? `${scheduledDate}T${scheduledTime}:00` : undefined;
     try {
-      if (isEdit && id) {
-        await api.updatePost(id, { title, body, scheduledAt, socialAccountIds: selectedChannels });
+      const postId = draftPostId;
+      if (postId) {
+        await api.updatePost(postId, { title, body, scheduledAt, socialAccountIds: selectedChannels });
       } else {
         await api.createPost({ title, body, scheduledAt, socialAccountIds: selectedChannels });
       }
@@ -97,20 +240,8 @@ export function PostEditorPage() {
     }
   };
 
-  const insertFormat = (before: string, after: string) => {
-    const ta = document.querySelector('textarea');
-    if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const selected = body.slice(start, end);
-    const newText = body.slice(0, start) + before + selected + after + body.slice(end);
-    setBody(newText);
-    setTimeout(() => {
-      ta.focus();
-      ta.selectionStart = start + before.length;
-      ta.selectionEnd = start + before.length + selected.length;
-    }, 0);
-  };
+  const totalCount = media.length;
+  const uploadingCount = media.filter((m) => m.kind === 'uploading').length;
 
   return (
     <div className="flex min-h-screen">
@@ -120,108 +251,110 @@ export function PostEditorPage() {
           <h1 className="font-display text-2xl font-bold text-white">
             {isEdit ? 'Редактирование поста' : 'Новый пост'}
           </h1>
-          <button onClick={() => navigate('/app/calendar')} className="btn-ghost text-sm">
-            ← Календарь
-          </button>
+          <button onClick={() => navigate('/app/calendar')} className="btn-ghost text-sm">← Календарь</button>
         </div>
 
-        <form onSubmit={onSubmit} className="max-w-3xl space-y-5">
+        <form onSubmit={onSubmit} className="max-w-4xl space-y-5">
           {error && (
             <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
           )}
 
           <div>
-            <label className="label">Заголовок (необязательно)</label>
-            <input
-              className="input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Краткое описание поста"
-            />
+            <label className="label">Заголовок</label>
+            <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Краткое описание" />
           </div>
 
           <div>
             <label className="label">Текст поста</label>
-            <div className="flex gap-1 mb-2 flex-wrap">
-              <button type="button" onClick={() => insertFormat('**', '**')} className="rounded-lg border border-graphite-700 bg-graphite-850 px-2 py-1 text-xs text-graphite-300 hover:text-white" title="Жирный">B</button>
-              <button type="button" onClick={() => insertFormat('*', '*')} className="rounded-lg border border-graphite-700 bg-graphite-850 px-2 py-1 text-xs text-graphite-300 hover:text-white italic" title="Курсив">I</button>
-              <button type="button" onClick={() => insertFormat('`', '`')} className="rounded-lg border border-graphite-700 bg-graphite-850 px-2 py-1 text-xs text-graphite-300 hover:text-white font-mono" title="Код">{'<>'}</button>
-              <button type="button" onClick={() => insertFormat('```\n', '\n```')} className="rounded-lg border border-graphite-700 bg-graphite-850 px-2 py-1 text-xs text-graphite-300 hover:text-white" title="Блок кода">{'{ }'}</button>
-              <button type="button" onClick={() => insertFormat('[', '](url)')} className="rounded-lg border border-graphite-700 bg-graphite-850 px-2 py-1 text-xs text-graphite-300 hover:text-white" title="Ссылка">🔗</button>
-              <button type="button" onClick={() => insertFormat('\n> ', '')} className="rounded-lg border border-graphite-700 bg-graphite-850 px-2 py-1 text-xs text-graphite-300 hover:text-white" title="Цитата">❝</button>
-              <button type="button" onClick={() => insertFormat('\n- ', '')} className="rounded-lg border border-graphite-700 bg-graphite-850 px-2 py-1 text-xs text-graphite-300 hover:text-white" title="Список">☰</button>
-              <button type="button" onClick={() => insertFormat('\n---\n', '')} className="rounded-lg border border-graphite-700 bg-graphite-850 px-2 py-1 text-xs text-graphite-300 hover:text-white" title="Разделитель">—</button>
+            <div className="rounded-xl border border-graphite-700 bg-graphite-850 overflow-hidden">
+              <div className="flex gap-0.5 border-b border-graphite-700 bg-graphite-900 px-2 py-1.5 flex-wrap">
+                <button type="button" onClick={() => execCmd('bold')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white font-bold" title="Жирный">B</button>
+                <button type="button" onClick={() => execCmd('italic')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white italic" title="Курсив">I</button>
+                <button type="button" onClick={() => execCmd('strikeThrough')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white line-through" title="Зачёркнутый">S</button>
+                <div className="w-px bg-graphite-700 mx-1" />
+                <button type="button" onClick={() => insertMd('`', '`')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white font-mono" title="Код">&lt;/&gt;</button>
+                <button type="button" onClick={() => insertMd('```\n', '\n```')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Блок кода">{'{ }'}</button>
+                <div className="w-px bg-graphite-700 mx-1" />
+                <button type="button" onClick={insertLink} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Ссылка">🔗</button>
+                <button type="button" onClick={() => insertMd('\n> ', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Цитата">❝</button>
+                <button type="button" onClick={() => document.execCommand('insertUnorderedList')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Список">☰</button>
+                <button type="button" onClick={() => insertMd('\n---\n', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Разделитель">—</button>
+              </div>
+              <div
+                ref={editorRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={syncBody}
+                className="min-h-[200px] max-h-[500px] overflow-y-auto px-4 py-3 text-sm text-graphite-100 leading-relaxed focus:outline-none empty:before:content-['Начните_писать...'] empty:before:text-graphite-500"
+                data-placeholder="Начните вводить текст поста..."
+              />
             </div>
-            <textarea
-              className="input min-h-[200px] font-mono text-sm resize-y"
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Текст поста... Поддерживается Markdown-форматирование Telegram"
-              required
-            />
-            <p className="mt-1 text-xs text-graphite-500">
-              Telegram поддерживает: *жирный*, _курсив_, `код`, [ссылки](url), &gt; цитаты, списки
-            </p>
+            <div className="flex items-center justify-between mt-1.5">
+              <p className="text-xs text-graphite-500">Форматирование: **жирный**, *курсив*, `код`, [ссылки](url), &gt; цитаты</p>
+              <span className="text-xs text-graphite-600">{body.length} символов</span>
+            </div>
           </div>
 
           <div>
-            <label className="label">Медиафайлы (до 10)</label>
+            <label className="label">Медиафайлы (до 10) — перетащите для порядка</label>
             <div className="flex flex-wrap gap-3">
-              {mediaPreview.map((m, i) => (
-                <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border border-graphite-700 bg-graphite-850">
-                  {m.kind === 'video' ? (
-                    <div className="w-full h-full flex items-center justify-center text-2xl">🎬</div>
-                  ) : (
-                    <img src={m.preview} alt="" className="w-full h-full object-cover" />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => removeMedia(i)}
-                    className="absolute top-1 right-1 h-5 w-5 rounded-full bg-red-500/80 text-white text-xs flex items-center justify-center"
+              {media.map((m, i) => {
+                const borderClass = m.kind === 'uploading'
+                  ? m.status === 'error' ? 'border-red-500/50' : 'border-lime/30'
+                  : 'border-graphite-700';
+                const preview = m.kind === 'existing' ? m.url : m.preview;
+                return (
+                  <div
+                    key={m.kind === 'existing' ? m.id : `up-${i}`}
+                    draggable
+                    onDragStart={() => onDragStart(i)}
+                    onDragOver={(e) => onDragOver(e, i)}
+                    onDragEnd={onDragEnd}
+                    className={`relative w-24 h-24 rounded-xl overflow-hidden border bg-graphite-850 cursor-grab active:cursor-grabbing transition-opacity ${borderClass} ${dragIdx === i ? 'opacity-50' : ''}`}
                   >
-                    ✕
-                  </button>
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[9px] text-center py-0.5 text-graphite-300 truncate px-1">
-                    {m.file.name}
+                    {m.mediaKind === 'video' ? (
+                      <div className="w-full h-full flex items-center justify-center text-2xl">🎬</div>
+                    ) : m.mediaKind === 'gif' ? (
+                      <div className="w-full h-full flex items-center justify-center text-2xl">🎞️</div>
+                    ) : (
+                      <img src={preview} alt="" className="w-full h-full object-cover" />
+                    )}
+                    {m.kind === 'uploading' && m.status === 'uploading' && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-graphite-600 border-t-lime" />
+                      </div>
+                    )}
+                    <button type="button" onClick={() => removeMedia(i)} className="absolute top-1 right-1 h-5 w-5 rounded-full bg-red-500/80 text-white text-xs flex items-center justify-center hover:bg-red-500 z-10">✕</button>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[9px] text-center py-0.5 text-graphite-300 truncate px-1">
+                      {i + 1}
+                    </div>
+                    {m.kind === 'uploading' && (
+                      <div className="absolute top-1 left-1 h-4 w-4 rounded-full bg-graphite-900/80 text-[9px] text-lime flex items-center justify-center">↑</div>
+                    )}
                   </div>
-                </div>
-              ))}
-              {mediaFiles.length < 10 && (
+                );
+              })}
+              {totalCount < 10 && (
                 <label className="w-24 h-24 rounded-xl border-2 border-dashed border-graphite-700 flex flex-col items-center justify-center cursor-pointer hover:border-lime/40 transition">
                   <span className="text-2xl text-graphite-500">+</span>
                   <span className="text-[10px] text-graphite-500 mt-1">Добавить</span>
-                  <input
-                    type="file"
-                    accept="image/*,video/mp4,.gif"
-                    multiple
-                    className="hidden"
-                    onChange={handleMediaChange}
-                  />
+                  <input type="file" accept="image/*,video/mp4,.gif" multiple className="hidden" onChange={handleMediaChange} />
                 </label>
               )}
             </div>
-            <p className="mt-1 text-xs text-graphite-500">JPG, PNG, WebP, GIF, MP4. До 50 МБ каждый.</p>
+            <p className="mt-1 text-xs text-graphite-500">
+              JPG, PNG, WebP, GIF, MP4. До 50 МБ. {totalCount > 0 && `${totalCount} файл(ов)`} {uploadingCount > 0 && `· загружается: ${uploadingCount}`}
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="label">Дата публикации</label>
-              <input
-                type="date"
-                className="input"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-              />
+              <input type="date" className="input" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} />
             </div>
             <div>
               <label className="label">Время</label>
-              <input
-                type="time"
-                className="input"
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                disabled={!scheduledDate}
-              />
+              <input type="time" className="input" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} disabled={!scheduledDate} />
             </div>
           </div>
 
@@ -232,16 +365,7 @@ export function PostEditorPage() {
             ) : (
               <div className="flex flex-wrap gap-2">
                 {channels.map((ch) => (
-                  <button
-                    key={ch.id}
-                    type="button"
-                    onClick={() => toggleChannel(ch.id)}
-                    className={`rounded-xl border px-4 py-2 text-sm transition ${
-                      selectedChannels.includes(ch.id)
-                        ? 'border-lime/50 bg-lime/10 text-lime'
-                        : 'border-graphite-700 bg-graphite-850 text-graphite-300 hover:border-graphite-600'
-                    }`}
-                  >
+                  <button key={ch.id} type="button" onClick={() => toggleChannel(ch.id)} className={`rounded-xl border px-4 py-2 text-sm transition ${selectedChannels.includes(ch.id) ? 'border-lime/50 bg-lime/10 text-lime' : 'border-graphite-700 bg-graphite-850 text-graphite-300 hover:border-graphite-600'}`}>
                     {ch.title}
                   </button>
                 ))}
@@ -250,12 +374,8 @@ export function PostEditorPage() {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? 'Сохранение...' : isEdit ? 'Сохранить' : 'Запланировать'}
-            </button>
-            <button type="button" onClick={() => navigate('/app/calendar')} className="btn-ghost">
-              Отмена
-            </button>
+            <button type="submit" disabled={saving || uploadingCount > 0} className="btn-primary">{saving ? 'Сохранение...' : isEdit ? 'Сохранить' : 'Запланировать'}</button>
+            <button type="button" onClick={() => navigate('/app/calendar')} className="btn-ghost">Отмена</button>
           </div>
         </form>
       </main>

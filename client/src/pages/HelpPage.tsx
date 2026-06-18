@@ -37,7 +37,7 @@ export function HelpPage() {
           <h1 className="font-display text-3xl font-bold text-white sm:text-4xl">Помощь и поддержка</h1>
           <p className="mt-4 text-graphite-300">
             Ответы на частые вопросы. Не нашли свой? Напишите на{' '}
-            <a href="mailto:support@neonix.app" className="text-lime hover:underline">support@neonix.app</a>
+            <a href="mailto:support@neonix.online" className="text-lime hover:underline">support@neonix.online</a>
           </p>
 
           <div className="mt-10 space-y-4">
@@ -57,7 +57,7 @@ export function HelpPage() {
           <div className="mt-12 card p-8 text-center">
             <h2 className="font-display text-xl font-bold text-white">Нужна помощь?</h2>
             <p className="mt-2 text-sm text-graphite-300">
-              Напишите нам на <a href="mailto:support@neonix.app" className="text-lime hover:underline">support@neonix.app</a>
+              Напишите нам на <a href="mailto:support@neonix.online" className="text-lime hover:underline">support@neonix.online</a>
             </p>
             <p className="mt-1 text-xs text-graphite-400">Отвечаем в течение 24 часов в рабочие дни.</p>
           </div>

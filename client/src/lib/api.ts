@@ -1,4 +1,4 @@
-import type { AuthResponse, User, Post } from './types';
+import type { AuthResponse, User, Post, AnalyticsOverview, AnalyticsTimeline, AnalyticsChannel, AnalyticsPost, ChannelStats } from './types';
 
 const BASE = '/api';
 
@@ -142,6 +142,72 @@ export const api = {
   deletePost: (id: string) =>
     request<{ success: boolean }>(`/posts/${id}`, { method: 'DELETE' }),
 
+  uploadMedia: async (postId: string, file: File): Promise<{ id: string; kind: string; filename: string; url: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers: Record<string, string> = {};
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const res = await fetch(`${BASE}/media/upload/${postId}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new HttpError(res.status, (data as any)?.message || 'Ошибка загрузки файла', data);
+    }
+    return res.json();
+  },
+
+  deleteMedia: (id: string) =>
+    request<{ success: boolean }>(`/media/${id}`, { method: 'DELETE' }),
+
   createBulkPosts: (posts: Array<{ title?: string; body: string; scheduledAt: string; channelTitles: string[] }>) =>
     request<Array<{ success?: boolean; postId?: string; error?: string }>>('/posts/bulk', { method: 'POST', body: JSON.stringify({ posts }) }),
+
+  forgotPassword: (email: string) =>
+    request<{ success: boolean }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  resetPassword: (token: string, newPassword: string) =>
+    request<{ success: boolean }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),
+
+  getAnalyticsOverview: () =>
+    request<AnalyticsOverview>('/analytics/overview'),
+
+  getAnalyticsTimeline: (days?: number) =>
+    request<AnalyticsTimeline[]>(`/analytics/timeline${days ? `?days=${days}` : ''}`),
+
+  getAnalyticsChannels: () =>
+    request<AnalyticsChannel[]>('/analytics/channels'),
+
+  getAnalyticsPosts: (limit?: number) =>
+    request<AnalyticsPost[]>(`/analytics/posts${limit ? `?limit=${limit}` : ''}`),
+
+  getChannelStats: () =>
+    request<ChannelStats[]>('/channel-stats'),
+
+  collectChannelStats: () =>
+    request<{ success: boolean }>('/channel-stats/collect', { method: 'POST' }),
+
+  getMtprotoStatus: () =>
+    request<{ authorized: boolean; configured: boolean; pendingStep: string | null }>('/mtproto/status'),
+
+  mtprotoAuthPhone: (phone: string) =>
+    request<{ step?: string; message?: string; error?: string }>('/mtproto/auth/phone', { method: 'POST', body: JSON.stringify({ phone }) }),
+
+  mtprotoAuthCode: (code: string) =>
+    request<{ step?: string; message?: string; error?: string }>('/mtproto/auth/code', { method: 'POST', body: JSON.stringify({ code }) }),
+
+  mtprotoAuthPassword: (password: string) =>
+    request<{ step?: string; message?: string; error?: string }>('/mtproto/auth/password', { method: 'POST', body: JSON.stringify({ password }) }),
+
+  mtprotoLogout: () =>
+    request<{ message: string }>('/mtproto/auth/logout', { method: 'POST' }),
+
+  getMtprotoChannelStats: (username: string) =>
+    request<Array<{ id: number; date: string; text: string; views: number; forwards: number; replies: number; reactions: Record<string, number> }>>(`/mtproto/channel/${username}/stats`),
+
+  collectMtprotoStats: () =>
+    request<{ results?: Array<{ channel: string; username: string; postsFound: number; totalViews: number }>; error?: string }>('/mtproto/collect', { method: 'POST' }),
 };

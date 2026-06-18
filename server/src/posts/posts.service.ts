@@ -51,7 +51,8 @@ export class PostsService {
     scheduledAt?: string;
     socialAccountIds: string[];
   }) {
-    if (!data.body.trim() && data.socialAccountIds.length === 0) {
+    const isDraft = !data.scheduledAt && data.socialAccountIds.length === 0;
+    if (!isDraft && !data.body.trim() && data.socialAccountIds.length === 0) {
       throw new BadRequestException('Текст или хотя бы один канал обязательны');
     }
 
@@ -117,15 +118,17 @@ export class PostsService {
         throw new BadRequestException('Один или несколько каналов не принадлежат вам');
       }
 
-      await this.prisma.postPublication.deleteMany({ where: { postId } });
-      await this.prisma.postPublication.createMany({
-        data: data.socialAccountIds.map((saId) => ({
-          postId,
-          socialAccountId: saId,
-          status: data.scheduledAt ? 'queued' : 'draft',
-          scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : new Date(),
-        })),
-      });
+      await this.prisma.$transaction([
+        this.prisma.postPublication.deleteMany({ where: { postId } }),
+        this.prisma.postPublication.createMany({
+          data: data.socialAccountIds.map((saId) => ({
+            postId,
+            socialAccountId: saId,
+            status: data.scheduledAt ? 'queued' : 'draft',
+            scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : new Date(),
+          })),
+        }),
+      ]);
     }
 
     return this.prisma.post.update({

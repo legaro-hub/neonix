@@ -7,6 +7,8 @@ const NAV_ITEMS = [
   { href: '/app/posts', label: 'Посты', icon: '📝' },
   { href: '/app/calendar', label: 'Календарь', icon: '📅' },
   { href: '/app/analytics', label: 'Аналитика', icon: '📊' },
+  { href: '/app/analytics/channels', label: 'Статистика каналов', icon: '📈' },
+  { href: '/app/analytics/mtproto', label: 'MTProto', icon: '🔬' },
 ];
 
 const BOTTOM_ITEMS = [
@@ -28,7 +30,7 @@ export function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 border-r border-graphite-800 bg-graphite-900/50 lg:flex lg:flex-col">
       <div className="flex h-16 items-center gap-2 border-b border-graphite-800 px-5">
-        <Link to="/" className="font-display text-lg font-bold text-graphite-100">
+        <Link to="/app" className="font-display text-lg font-bold text-graphite-100">
           Neon<span className="text-lime">ix</span>
         </Link>
         <span className="chip ml-1 text-[10px]">Beta</span>
