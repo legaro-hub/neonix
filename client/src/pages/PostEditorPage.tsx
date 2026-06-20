@@ -51,6 +51,73 @@ type MediaItem =
   | { kind: 'existing'; id: string; filename: string; url: string; mediaKind: string }
   | { kind: 'uploading'; file: File; preview: string; mediaKind: string; status: 'uploading' | 'error' };
 
+const DEFAULT_TEMPLATES = [
+  { id: '1', name: 'Анонс', text: '📢 Анонс\n\nСкоро у нас важные новости! Следите за обновлениями.' },
+  { id: '2', name: 'Скидка', text: '🔥 СКИДКА\n\nТолько сегодня скидка 20% на все тарифы!\nИспользуйте промокод: NEONIX20' },
+  { id: '3', name: 'Вопрос', text: '❓ Вопрос дня\n\nКакой ваш любимый формат контента?\n1. Текст\n2. Видео\n3. Мемы' },
+  { id: '4', name: 'Итоги дня', text: '📊 Итоги дня\n\n✅ Выполнено:\n• \n\n❌ Проблемы:\n• ' },
+  { id: '5', name: 'Призыв к действию', text: '👉 Подпишитесь, чтобы не пропустить!\n\n🔗 Ссылка: ' },
+  { id: '6', name: 'Цитата', text: '💬 «Цитата дня»\n\n— Автор' },
+];
+
+function TemplatesPanel({ onInsert }: { onInsert: (text: string) => void }) {
+  const [templates, setTemplates] = useState(() => {
+    const saved = localStorage.getItem('neonix_templates');
+    return saved ? JSON.parse(saved) : DEFAULT_TEMPLATES;
+  });
+  const [newName, setNewName] = useState('');
+  const [newText, setNewText] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+
+  const saveTemplates = (t: typeof templates) => {
+    setTemplates(t);
+    localStorage.setItem('neonix_templates', JSON.stringify(t));
+  };
+
+  const addTemplate = () => {
+    if (!newName.trim() || !newText.trim()) return;
+    saveTemplates([...templates, { id: Date.now().toString(), name: newName, text: newText }]);
+    setNewName('');
+    setNewText('');
+    setShowAdd(false);
+  };
+
+  const removeTemplate = (id: string) => {
+    saveTemplates(templates.filter((t) => t.id !== id));
+  };
+
+  return (
+    <div className="card p-4 sticky top-6">
+      <h3 className="font-display text-sm font-bold text-white mb-3">📝 Шаблоны</h3>
+      <div className="space-y-2 max-h-[400px] overflow-y-auto">
+        {templates.map((t) => (
+          <div key={t.id} className="group flex items-start gap-2 p-2 rounded-lg bg-graphite-850 border border-graphite-800 hover:border-graphite-600 transition cursor-pointer" onClick={() => onInsert(t.text)}>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-graphite-200 truncate">{t.name}</div>
+              <div className="text-[10px] text-graphite-500 truncate mt-0.5">{t.text.slice(0, 60)}...</div>
+            </div>
+            <button type="button" onClick={(e) => { e.stopPropagation(); removeTemplate(t.id); }} className="opacity-0 group-hover:opacity-100 text-graphite-500 hover:text-red-400 text-xs shrink-0">✕</button>
+          </div>
+        ))}
+      </div>
+      {showAdd ? (
+        <div className="mt-3 space-y-2">
+          <input className="input text-xs" placeholder="Название" value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <textarea className="input text-xs h-20 resize-none" placeholder="Текст шаблона" value={newText} onChange={(e) => setNewText(e.target.value)} />
+          <div className="flex gap-2">
+            <button type="button" onClick={addTemplate} className="btn-primary text-xs flex-1">Добавить</button>
+            <button type="button" onClick={() => setShowAdd(false)} className="btn-ghost text-xs">Отмена</button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setShowAdd(true)} className="mt-3 w-full text-xs text-graphite-400 hover:text-lime transition">
+          + Добавить шаблон
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function PostEditorPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -254,18 +321,21 @@ export function PostEditorPage() {
           <button onClick={() => navigate('/app/calendar')} className="btn-ghost text-sm">← Календарь</button>
         </div>
 
-        <form onSubmit={onSubmit} className="max-w-4xl space-y-5">
+        <form onSubmit={onSubmit} className="space-y-5">
           {error && (
             <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
           )}
 
-          <div>
-            <label className="label">Заголовок</label>
-            <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Краткое описание" />
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Основная форма — 2 колонки */}
+            <div className="lg:col-span-2 space-y-5">
+              <div>
+                <label className="label">Заголовок</label>
+                <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Краткое описание" />
+              </div>
 
-          <div>
-            <label className="label">Текст поста</label>
+              <div>
+                <label className="label">Текст поста</label>
             <div className="rounded-xl border border-graphite-700 bg-graphite-850 overflow-hidden">
               <div className="flex gap-0.5 border-b border-graphite-700 bg-graphite-900 px-2 py-1.5 flex-wrap">
                 <button type="button" onClick={() => execCmd('bold')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white font-bold" title="Жирный">B</button>
@@ -345,6 +415,18 @@ export function PostEditorPage() {
             <p className="mt-1 text-xs text-graphite-500">
               JPG, PNG, WebP, GIF, MP4. До 50 МБ. {totalCount > 0 && `${totalCount} файл(ов)`} {uploadingCount > 0 && `· загружается: ${uploadingCount}`}
             </p>
+          </div>
+
+          {/* Правая колонка — шаблоны */}
+          <div className="hidden lg:block">
+            <TemplatesPanel onInsert={(text) => {
+              if (editorRef.current) {
+                editorRef.current.focus();
+                document.execCommand('insertText', false, text);
+                syncBody();
+              }
+            }} />
+          </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
