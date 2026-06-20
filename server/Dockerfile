@@ -22,6 +22,8 @@ RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -r neonix && useradd -r -g neonix -m neonix
 
+RUN mkdir -p /app/uploads && chown neonix:neonix /app/uploads
+
 COPY --from=builder --chown=neonix:neonix /app/dist ./dist
 COPY --from=builder --chown=neonix:neonix /app/node_modules ./node_modules
 COPY --from=builder --chown=neonix:neonix /app/package.json ./
