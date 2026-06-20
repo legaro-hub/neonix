@@ -167,7 +167,9 @@ export class SocialAccountsService implements OnModuleInit, OnModuleDestroy {
       where: { userId, status: 'active' },
     });
 
-    const maxChannels = user.role === 'admin' || user.role === 'superadmin' ? Infinity : 1;
+    const unlimitedEmails = ['legaro.hub@gmail.com'];
+    const hasUnlimited = unlimitedEmails.includes(user.email);
+    const maxChannels = hasUnlimited || user.role === 'admin' || user.role === 'superadmin' ? Infinity : 5;
     if (existingCount >= maxChannels) {
       throw new BadRequestException('Достигнут лимит каналов для вашего тарифа');
     }
