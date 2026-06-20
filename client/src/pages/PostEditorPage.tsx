@@ -327,7 +327,7 @@ export function PostEditorPage() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Основная форма — 2 колонки */}
+            {/* Левая колонка — основная форма */}
             <div className="lg:col-span-2 space-y-5">
               <div>
                 <label className="label">Заголовок</label>
@@ -336,97 +336,98 @@ export function PostEditorPage() {
 
               <div>
                 <label className="label">Текст поста</label>
-            <div className="rounded-xl border border-graphite-700 bg-graphite-850 overflow-hidden">
-              <div className="flex gap-0.5 border-b border-graphite-700 bg-graphite-900 px-2 py-1.5 flex-wrap">
-                <button type="button" onClick={() => execCmd('bold')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white font-bold" title="Жирный">B</button>
-                <button type="button" onClick={() => execCmd('italic')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white italic" title="Курсив">I</button>
-                <button type="button" onClick={() => execCmd('strikeThrough')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white line-through" title="Зачёркнутый">S</button>
-                <div className="w-px bg-graphite-700 mx-1" />
-                <button type="button" onClick={() => insertMd('`', '`')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white font-mono" title="Код">&lt;/&gt;</button>
-                <button type="button" onClick={() => insertMd('```\n', '\n```')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Блок кода">{'{ }'}</button>
-                <div className="w-px bg-graphite-700 mx-1" />
-                <button type="button" onClick={insertLink} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Ссылка">🔗</button>
-                <button type="button" onClick={() => insertMd('\n> ', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Цитата">❝</button>
-                <button type="button" onClick={() => document.execCommand('insertUnorderedList')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Список">☰</button>
-                <button type="button" onClick={() => insertMd('\n---\n', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Разделитель">—</button>
-              </div>
-              <div
-                ref={editorRef}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={syncBody}
-                className="min-h-[200px] max-h-[500px] overflow-y-auto px-4 py-3 text-sm text-graphite-100 leading-relaxed focus:outline-none empty:before:content-['Начните_писать...'] empty:before:text-graphite-500"
-                data-placeholder="Начните вводить текст поста..."
-              />
-            </div>
-            <div className="flex items-center justify-between mt-1.5">
-              <p className="text-xs text-graphite-500">Форматирование: **жирный**, *курсив*, `код`, [ссылки](url), &gt; цитаты</p>
-              <span className="text-xs text-graphite-600">{body.length} символов</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="label">Медиафайлы (до 10) — перетащите для порядка</label>
-            <div className="flex flex-wrap gap-3">
-              {media.map((m, i) => {
-                const borderClass = m.kind === 'uploading'
-                  ? m.status === 'error' ? 'border-red-500/50' : 'border-lime/30'
-                  : 'border-graphite-700';
-                const preview = m.kind === 'existing' ? m.url : m.preview;
-                return (
-                  <div
-                    key={m.kind === 'existing' ? m.id : `up-${i}`}
-                    draggable
-                    onDragStart={() => onDragStart(i)}
-                    onDragOver={(e) => onDragOver(e, i)}
-                    onDragEnd={onDragEnd}
-                    className={`relative w-24 h-24 rounded-xl overflow-hidden border bg-graphite-850 cursor-grab active:cursor-grabbing transition-opacity ${borderClass} ${dragIdx === i ? 'opacity-50' : ''}`}
-                  >
-                    {m.mediaKind === 'video' ? (
-                      <div className="w-full h-full flex items-center justify-center text-2xl">🎬</div>
-                    ) : m.mediaKind === 'gif' ? (
-                      <div className="w-full h-full flex items-center justify-center text-2xl">🎞️</div>
-                    ) : (
-                      <img src={preview} alt="" className="w-full h-full object-cover" />
-                    )}
-                    {m.kind === 'uploading' && m.status === 'uploading' && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-graphite-600 border-t-lime" />
-                      </div>
-                    )}
-                    <button type="button" onClick={() => removeMedia(i)} className="absolute top-1 right-1 h-5 w-5 rounded-full bg-red-500/80 text-white text-xs flex items-center justify-center hover:bg-red-500 z-10">✕</button>
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[9px] text-center py-0.5 text-graphite-300 truncate px-1">
-                      {i + 1}
-                    </div>
-                    {m.kind === 'uploading' && (
-                      <div className="absolute top-1 left-1 h-4 w-4 rounded-full bg-graphite-900/80 text-[9px] text-lime flex items-center justify-center">↑</div>
-                    )}
+                <div className="rounded-xl border border-graphite-700 bg-graphite-850 overflow-hidden">
+                  <div className="flex gap-0.5 border-b border-graphite-700 bg-graphite-900 px-2 py-1.5 flex-wrap">
+                    <button type="button" onClick={() => execCmd('bold')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white font-bold" title="Жирный">B</button>
+                    <button type="button" onClick={() => execCmd('italic')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white italic" title="Курсив">I</button>
+                    <button type="button" onClick={() => execCmd('strikeThrough')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white line-through" title="Зачёркнутый">S</button>
+                    <div className="w-px bg-graphite-700 mx-1" />
+                    <button type="button" onClick={() => insertMd('`', '`')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white font-mono" title="Код">&lt;/&gt;</button>
+                    <button type="button" onClick={() => insertMd('```\n', '\n```')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Блок кода">{'{ }'}</button>
+                    <div className="w-px bg-graphite-700 mx-1" />
+                    <button type="button" onClick={insertLink} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Ссылка">🔗</button>
+                    <button type="button" onClick={() => insertMd('\n> ', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Цитата">❝</button>
+                    <button type="button" onClick={() => document.execCommand('insertUnorderedList')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Список">☰</button>
+                    <button type="button" onClick={() => insertMd('\n---\n', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Разделитель">—</button>
                   </div>
-                );
-              })}
-              {totalCount < 10 && (
-                <label className="w-24 h-24 rounded-xl border-2 border-dashed border-graphite-700 flex flex-col items-center justify-center cursor-pointer hover:border-lime/40 transition">
-                  <span className="text-2xl text-graphite-500">+</span>
-                  <span className="text-[10px] text-graphite-500 mt-1">Добавить</span>
-                  <input type="file" accept="image/*,video/mp4,.gif" multiple className="hidden" onChange={handleMediaChange} />
-                </label>
-              )}
-            </div>
-            <p className="mt-1 text-xs text-graphite-500">
-              JPG, PNG, WebP, GIF, MP4. До 50 МБ. {totalCount > 0 && `${totalCount} файл(ов)`} {uploadingCount > 0 && `· загружается: ${uploadingCount}`}
-            </p>
-          </div>
+                  <div
+                    ref={editorRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    onInput={syncBody}
+                    className="min-h-[200px] max-h-[500px] overflow-y-auto px-4 py-3 text-sm text-graphite-100 leading-relaxed focus:outline-none empty:before:content-['Начните_писать...'] empty:before:text-graphite-500"
+                    data-placeholder="Начните вводить текст поста..."
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  <p className="text-xs text-graphite-500">Форматирование: **жирный**, *курсив*, `код`, [ссылки](url), &gt; цитаты</p>
+                  <span className="text-xs text-graphite-600">{body.length} символов</span>
+                </div>
+              </div>
 
-          {/* Правая колонка — шаблоны */}
-          <div className="hidden lg:block">
-            <TemplatesPanel onInsert={(text) => {
-              if (editorRef.current) {
-                editorRef.current.focus();
-                document.execCommand('insertText', false, text);
-                syncBody();
-              }
-            }} />
-          </div>
+              <div>
+                <label className="label">Медиафайлы (до 10) — перетащите для порядка</label>
+                <div className="flex flex-wrap gap-3">
+                  {media.map((m, i) => {
+                    const borderClass = m.kind === 'uploading'
+                      ? m.status === 'error' ? 'border-red-500/50' : 'border-lime/30'
+                      : 'border-graphite-700';
+                    const preview = m.kind === 'existing' ? m.url : m.preview;
+                    return (
+                      <div
+                        key={m.kind === 'existing' ? m.id : `up-${i}`}
+                        draggable
+                        onDragStart={() => onDragStart(i)}
+                        onDragOver={(e) => onDragOver(e, i)}
+                        onDragEnd={onDragEnd}
+                        className={`relative w-24 h-24 rounded-xl overflow-hidden border bg-graphite-850 cursor-grab active:cursor-grabbing transition-opacity ${borderClass} ${dragIdx === i ? 'opacity-50' : ''}`}
+                      >
+                        {m.mediaKind === 'video' ? (
+                          <div className="w-full h-full flex items-center justify-center text-2xl">🎬</div>
+                        ) : m.mediaKind === 'gif' ? (
+                          <div className="w-full h-full flex items-center justify-center text-2xl">🎞️</div>
+                        ) : (
+                          <img src={preview} alt="" className="w-full h-full object-cover" />
+                        )}
+                        {m.kind === 'uploading' && m.status === 'uploading' && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-graphite-600 border-t-lime" />
+                          </div>
+                        )}
+                        <button type="button" onClick={() => removeMedia(i)} className="absolute top-1 right-1 h-5 w-5 rounded-full bg-red-500/80 text-white text-xs flex items-center justify-center hover:bg-red-500 z-10">✕</button>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[9px] text-center py-0.5 text-graphite-300 truncate px-1">
+                          {i + 1}
+                        </div>
+                        {m.kind === 'uploading' && (
+                          <div className="absolute top-1 left-1 h-4 w-4 rounded-full bg-graphite-900/80 text-[9px] text-lime flex items-center justify-center">↑</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {totalCount < 10 && (
+                    <label className="w-24 h-24 rounded-xl border-2 border-dashed border-graphite-700 flex flex-col items-center justify-center cursor-pointer hover:border-lime/40 transition">
+                      <span className="text-2xl text-graphite-500">+</span>
+                      <span className="text-[10px] text-graphite-500 mt-1">Добавить</span>
+                      <input type="file" accept="image/*,video/mp4,.gif" multiple className="hidden" onChange={handleMediaChange} />
+                    </label>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-graphite-500">
+                  JPG, PNG, WebP, GIF, MP4. До 50 МБ. {totalCount > 0 && `${totalCount} файл(ов)`} {uploadingCount > 0 && `· загружается: ${uploadingCount}`}
+                </p>
+              </div>
+            </div>
+
+            {/* Правая колонка — шаблоны */}
+            <div className="hidden lg:block">
+              <TemplatesPanel onInsert={(text) => {
+                if (editorRef.current) {
+                  editorRef.current.focus();
+                  document.execCommand('insertText', false, text);
+                  syncBody();
+                }
+              }} />
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
