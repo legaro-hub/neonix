@@ -83,14 +83,14 @@ function TemplatesPanel({ onInsert }: { onInsert: (text: string) => void }) {
   };
 
   const removeTemplate = (id: string) => {
-    saveTemplates(templates.filter((t) => t.id !== id));
+    saveTemplates(templates.filter((t: { id: string; name: string; text: string }) => t.id !== id));
   };
 
   return (
     <div className="card p-4 sticky top-6">
       <h3 className="font-display text-sm font-bold text-white mb-3">📝 Шаблоны</h3>
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
-        {templates.map((t) => (
+        {templates.map((t: { id: string; name: string; text: string }) => (
           <div key={t.id} className="group flex items-start gap-2 p-2 rounded-lg bg-graphite-850 border border-graphite-800 hover:border-graphite-600 transition cursor-pointer" onClick={() => onInsert(t.text)}>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-semibold text-graphite-200 truncate">{t.name}</div>
