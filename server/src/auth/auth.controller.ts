@@ -78,8 +78,10 @@ export class AuthController {
 
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 300000 } })
-  async forgotPassword(@Body() body: any) {
-    return this.auth.forgotPassword(body?.email);
+  async forgotPassword(@Req() req: any) {
+    const email = req.body?.email;
+    if (!email) throw new BadRequestException('Email is required');
+    return this.auth.forgotPassword(email);
   }
 
   @Post('reset-password')
