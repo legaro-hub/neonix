@@ -14,6 +14,16 @@ export function ProfilePage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  // MTProto state
+  const [mtprotoStatus, setMtprotoStatus] = useState<{ authorized: boolean; configured: boolean; pendingStep: string | null } | null>(null);
+  const [authStep, setAuthStep] = useState<'phone' | 'code' | 'password' | null>(null);
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+
   useEffect(() => {
     if (user) {
       setName(user.name ?? '');
@@ -21,7 +31,68 @@ export function ProfilePage() {
       setTimezone(user.timezone);
       setLang(user.language);
     }
+    loadMtprotoStatus();
   }, [user]);
+
+  const loadMtprotoStatus = async () => {
+    try {
+      const s = await api.getMtprotoStatus();
+      setMtprotoStatus(s);
+      if (s.pendingStep) setAuthStep(s.pendingStep as any);
+    } catch {
+      setMtprotoStatus({ authorized: false, configured: false, pendingStep: null });
+    }
+  };
+
+  const sendPhone = async () => {
+    if (!phone.trim()) return;
+    setAuthLoading(true);
+    setAuthError('');
+    setAuthMessage('');
+    try {
+      const res = await api.mtprotoAuthPhone(phone);
+      if (res.error) setAuthError(res.error);
+      else { setAuthStep('code'); setAuthMessage(res.message || ''); }
+    } catch (e: any) { setAuthError(e.message || 'Ошибка'); }
+    setAuthLoading(false);
+  };
+
+  const sendCode = async () => {
+    if (!code.trim()) return;
+    setAuthLoading(true);
+    setAuthError('');
+    setAuthMessage('');
+    try {
+      const res = await api.mtprotoAuthCode(code);
+      if (res.error) setAuthError(res.error);
+      else if (res.step === 'password') { setAuthStep('password'); setAuthMessage(res.message || ''); }
+      else if (res.step === 'done') { setAuthStep(null); setAuthMessage(res.message || ''); loadMtprotoStatus(); }
+      else setAuthError('Неожиданный ответ');
+    } catch (e: any) { setAuthError(e.message || 'Ошибка'); }
+    setAuthLoading(false);
+  };
+
+  const sendPassword = async () => {
+    if (!password.trim()) return;
+    setAuthLoading(true);
+    setAuthError('');
+    setAuthMessage('');
+    try {
+      const res = await api.mtprotoAuthPassword(password);
+      if (res.error) setAuthError(res.error);
+      else if (res.step === 'done') { setAuthStep(null); setAuthMessage(res.message || ''); loadMtprotoStatus(); setPassword(''); }
+      else setAuthError('Неожиданный ответ');
+    } catch (e: any) { setAuthError(e.message || 'Ошибка'); }
+    setAuthLoading(false);
+  };
+
+  const doMtprotoLogout = async () => {
+    try {
+      await api.mtprotoLogout();
+      setAuthStep(null);
+      setMtprotoStatus({ authorized: false, configured: true, pendingStep: null });
+    } catch {}
+  };
 
   const onSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -143,6 +214,50 @@ export function ProfilePage() {
           <div className="card mt-6 p-6">
             <h2 className="font-display text-lg font-semibold text-white mb-2">Смена пароля</h2>
             <ChangePasswordForm />
+          </div>
+
+          <div className="card mt-6 p-6">
+            <h2 className="font-display text-lg font-semibold text-white mb-3">MTProto Аналитика</h2>
+            <p className="text-xs text-graphite-400 mb-4">Подключение для сбора просмотров, реакций и репостов</p>
+            {mtprotoStatus === null ? (
+              <div className="animate-pulse h-6 w-48 rounded bg-graphite-800" />
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`h-3 w-3 rounded-full ${mtprotoStatus.authorized ? 'bg-green-400' : mtprotoStatus.configured ? 'bg-yellow-400' : 'bg-red-400'}`} />
+                  <span className="text-sm text-graphite-300">
+                    {mtprotoStatus.authorized ? 'MTProto подключён' : mtprotoStatus.configured ? 'API ключи настроены' : 'Не настроен'}
+                  </span>
+                  {mtprotoStatus.authorized && (
+                    <button onClick={doMtprotoLogout} className="text-xs text-red-400 hover:text-red-300 ml-auto">Выйти</button>
+                  )}
+                </div>
+                {!mtprotoStatus.authorized && (
+                  <div className="space-y-3">
+                    {authStep === null && (
+                      <div className="flex gap-2">
+                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+79001234567" className="input flex-1" onKeyDown={(e) => e.key === 'Enter' && sendPhone()} />
+                        <button onClick={sendPhone} disabled={authLoading || !phone.trim()} className="btn-primary text-sm">{authLoading ? '...' : 'Код'}</button>
+                      </div>
+                    )}
+                    {authStep === 'code' && (
+                      <div className="flex gap-2">
+                        <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Код из Telegram" className="input flex-1" autoFocus onKeyDown={(e) => e.key === 'Enter' && sendCode()} />
+                        <button onClick={sendCode} disabled={authLoading || !code.trim()} className="btn-primary text-sm">{authLoading ? '...' : 'ОК'}</button>
+                      </div>
+                    )}
+                    {authStep === 'password' && (
+                      <div className="flex gap-2">
+                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль 2FA" className="input flex-1" autoFocus onKeyDown={(e) => e.key === 'Enter' && sendPassword()} />
+                        <button onClick={sendPassword} disabled={authLoading || !password.trim()} className="btn-primary text-sm">{authLoading ? '...' : 'ОК'}</button>
+                      </div>
+                    )}
+                    {authMessage && <p className="text-xs text-green-400">{authMessage}</p>}
+                    {authError && <p className="text-xs text-red-400">{authError}</p>}
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
           <div className="card mt-6 p-6 border-red-500/20">

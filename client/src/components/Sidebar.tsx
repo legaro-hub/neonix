@@ -7,8 +7,6 @@ const NAV_ITEMS = [
   { href: '/app/posts', label: 'Посты', icon: '📝' },
   { href: '/app/calendar', label: 'Календарь', icon: '📅' },
   { href: '/app/analytics', label: 'Аналитика', icon: '📊' },
-  { href: '/app/analytics/channels', label: 'Статистика каналов', icon: '📈' },
-  { href: '/app/analytics/mtproto', label: 'MTProto', icon: '🔬' },
 ];
 
 const BOTTOM_ITEMS = [

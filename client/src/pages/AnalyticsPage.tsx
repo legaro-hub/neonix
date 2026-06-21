@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { api } from '../lib/api';
-import type { AnalyticsOverview, AnalyticsTimeline, AnalyticsChannel, AnalyticsPost } from '../lib/types';
+import type { AnalyticsOverview, AnalyticsTimeline, AnalyticsChannel, AnalyticsPost, ChannelStats } from '../lib/types';
 
 function BarChart({ data, max }: { data: AnalyticsTimeline[]; max: number }) {
   return (
@@ -23,6 +23,30 @@ function BarChart({ data, max }: { data: AnalyticsTimeline[]; max: number }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function MiniLineChart({ data, height = 40 }: { data: Array<{ date: string; members: number | null }>; height?: number }) {
+  const valid = data.filter((d) => d.members !== null) as Array<{ date: string; members: number }>;
+  if (valid.length < 2) return <div className="text-xs text-graphite-500">Недостаточно данных</div>;
+  const min = Math.min(...valid.map((d) => d.members));
+  const max = Math.max(...valid.map((d) => d.members));
+  const range = max - min || 1;
+  const w = 200;
+  const points = valid.map((d, i) => {
+    const x = (i / (valid.length - 1)) * w;
+    const y = height - ((d.members - min) / range) * (height - 8) - 4;
+    return `${x},${y}`;
+  }).join(' ');
+  const diff = valid[valid.length - 1].members - valid[0].members;
+  const color = diff >= 0 ? '#4ade80' : '#f87171';
+  return (
+    <svg viewBox={`0 0 ${w} ${height}`} className="w-full" style={{ height }}>
+      <polyline points={points} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      {valid.length <= 14 && valid.map((d, i) => (
+        <circle key={i} cx={(i / (valid.length - 1)) * w} cy={height - ((d.members - min) / range) * (height - 8) - 4} r="2" fill={color} />
+      ))}
+    </svg>
   );
 }
 
@@ -57,32 +81,50 @@ function StatusBadge({ status }: { status: string }) {
 export function AnalyticsPage() {
   const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
   const [timeline, setTimeline] = useState<AnalyticsTimeline[]>([]);
-  const [channels, setChannels] = useState<AnalyticsChannel[]>([]);
+  const [analyticsChannels, setAnalyticsChannels] = useState<AnalyticsChannel[]>([]);
   const [posts, setPosts] = useState<AnalyticsPost[]>([]);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
+
+  // Channel stats (Bot API)
+  const [channelStats, setChannelStats] = useState<ChannelStats[]>([]);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [collecting, setCollecting] = useState(false);
 
   useEffect(() => {
     let active = true;
     (async () => {
       setLoading(true);
+      setStatsLoading(true);
       try {
-        const [ov, tl, ch, ps] = await Promise.all([
+        const [ov, tl, ch, ps, cs] = await Promise.all([
           api.getAnalyticsOverview(),
           api.getAnalyticsTimeline(days),
           api.getAnalyticsChannels(),
           api.getAnalyticsPosts(20),
+          api.getChannelStats(),
         ]);
         if (!active) return;
         setOverview(ov);
         setTimeline(tl);
-        setChannels(ch);
+        setAnalyticsChannels(ch);
         setPosts(ps);
+        setChannelStats(cs);
       } catch { /* ignore */ }
-      if (active) setLoading(false);
+      if (active) { setLoading(false); setStatsLoading(false); }
     })();
     return () => { active = false; };
   }, [days]);
+
+  const collectNow = async () => {
+    setCollecting(true);
+    try {
+      await api.collectChannelStats();
+      const cs = await api.getChannelStats();
+      setChannelStats(cs);
+    } catch { /* ignore */ }
+    setCollecting(false);
+  };
 
   const maxTimeline = Math.max(1, ...timeline.map((d) => d.count));
 
@@ -92,19 +134,20 @@ export function AnalyticsPage() {
       <main className="flex-1 p-6 lg:p-10">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="font-display text-2xl font-bold text-white">Аналитика</h1>
-            <p className="text-sm text-graphite-400">Статистика публикаций и каналов</p>
+            <h1 className="font-display text-2xl font-bold text-white">Аналитика и статистика</h1>
+            <p className="text-sm text-graphite-400">Публикации, каналы, подписчики</p>
           </div>
-          <select
-            value={days}
-            onChange={(e) => setDays(Number(e.target.value))}
-            className="input text-sm w-40"
-          >
-            <option value={7}>За 7 дней</option>
-            <option value={14}>За 14 дней</option>
-            <option value={30}>За 30 дней</option>
-            <option value={90}>За 90 дней</option>
-          </select>
+          <div className="flex gap-2">
+            <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="input text-sm w-40">
+              <option value={7}>За 7 дней</option>
+              <option value={14}>За 14 дней</option>
+              <option value={30}>За 30 дней</option>
+              <option value={90}>За 90 дней</option>
+            </select>
+            <button onClick={collectNow} disabled={collecting} className="btn-ghost text-sm">
+              {collecting ? 'Сбор...' : '🔄 Обновить'}
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -113,12 +156,12 @@ export function AnalyticsPage() {
               <div key={i} className="card p-5 animate-pulse">
                 <div className="h-10 w-10 rounded-xl bg-graphite-800" />
                 <div className="mt-3 h-6 w-20 rounded bg-graphite-800" />
-                <div className="mt-1 h-4 w-16 rounded bg-graphite-800" />
               </div>
             ))}
           </div>
         ) : overview ? (
           <>
+            {/* Обзор */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
               <StatCard icon="📝" label="Всего постов" value={overview.totalPosts} />
               <StatCard icon="⚡" label="Опубликовано" value={overview.byStatus.published} sub={`${overview.successRate}% успеха`} />
@@ -126,6 +169,7 @@ export function AnalyticsPage() {
               <StatCard icon="❌" label="Ошибок" value={overview.byStatus.failed} />
             </div>
 
+            {/* График */}
             <div className="card p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-display text-lg font-bold text-white">Публикации по дням</h2>
@@ -142,9 +186,59 @@ export function AnalyticsPage() {
               </div>
             </div>
 
-            {channels.length > 0 && (
+            {/* Статистика каналов — подписчики */}
+            {channelStats.length > 0 && (
+              <div className="mb-6">
+                <h2 className="font-display text-lg font-bold text-white mb-4">Подписчики каналов</h2>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {channelStats.map((ch) => (
+                    <div key={ch.id} className="card p-5">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold text-white">{ch.title}</h3>
+                          {ch.username && <p className="text-xs text-graphite-400">@{ch.username}</p>}
+                        </div>
+                        {ch.currentMembers !== null && (
+                          <div className="text-right">
+                            <div className="font-display text-xl font-bold text-lime">{ch.currentMembers.toLocaleString()}</div>
+                            <div className="text-[10px] text-graphite-400">подписчиков</div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="rounded-lg bg-graphite-850 p-2 text-center">
+                          <div className="font-bold text-graphite-100">{ch.publications.total}</div>
+                          <div className="text-[10px] text-graphite-400">постов</div>
+                        </div>
+                        <div className="rounded-lg bg-graphite-850 p-2 text-center">
+                          <div className="font-bold text-green-400">{ch.publications.published}</div>
+                          <div className="text-[10px] text-graphite-400">опубл.</div>
+                        </div>
+                      </div>
+                      {ch.memberHistory.length > 1 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-graphite-400">Динамика</span>
+                            {ch.memberHistory[0].members !== null && ch.memberHistory[ch.memberHistory.length - 1].members !== null && (
+                              <span className={`text-[10px] font-medium ${((ch.memberHistory[ch.memberHistory.length - 1].members ?? 0) - (ch.memberHistory[0].members ?? 0)) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                {(ch.memberHistory[ch.memberHistory.length - 1].members ?? 0) - (ch.memberHistory[0].members ?? 0) >= 0 ? '+' : ''}
+                                {((ch.memberHistory[ch.memberHistory.length - 1].members ?? 0) - (ch.memberHistory[0].members ?? 0)).toLocaleString()}
+                              </span>
+                            )}
+                          </div>
+                          <MiniLineChart data={ch.memberHistory} height={30} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Таблица по каналам (аналитика публикаций) */}
+            {analyticsChannels.length > 0 && (
               <div className="card p-6 mb-6">
-                <h2 className="font-display text-lg font-bold text-white mb-4">По каналам</h2>
+                <h2 className="font-display text-lg font-bold text-white mb-4">Публикации по каналам</h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
@@ -153,12 +247,11 @@ export function AnalyticsPage() {
                         <th className="pb-2 font-medium text-center">Всего</th>
                         <th className="pb-2 font-medium text-center">Опубликовано</th>
                         <th className="pb-2 font-medium text-center">Ошибки</th>
-                        <th className="pb-2 font-medium text-center">Очередь</th>
                         <th className="pb-2 font-medium text-center">Успех</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {channels.map((ch) => (
+                      {analyticsChannels.map((ch) => (
                         <tr key={ch.id} className="border-b border-graphite-800">
                           <td className="py-3">
                             <div className="font-medium text-graphite-100">{ch.title}</div>
@@ -167,7 +260,6 @@ export function AnalyticsPage() {
                           <td className="py-3 text-center text-graphite-300">{ch.total}</td>
                           <td className="py-3 text-center text-green-400">{ch.published}</td>
                           <td className="py-3 text-center text-red-400">{ch.failed}</td>
-                          <td className="py-3 text-center text-yellow-400">{ch.queued}</td>
                           <td className="py-3 text-center">
                             <span className={`font-medium ${ch.successRate >= 90 ? 'text-green-400' : ch.successRate >= 70 ? 'text-yellow-400' : 'text-red-400'}`}>
                               {ch.successRate}%
@@ -181,6 +273,7 @@ export function AnalyticsPage() {
               </div>
             )}
 
+            {/* Последние посты */}
             <div className="card p-6">
               <h2 className="font-display text-lg font-bold text-white mb-4">Последние посты</h2>
               {posts.length === 0 ? (
