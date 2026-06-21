@@ -159,11 +159,16 @@ export function CalendarPage() {
                   <div className="space-y-1">
                     {dayPosts.length === 1 && (
                       <div className="rounded-md border border-lime/30 bg-lime/10 px-1.5 py-1">
+                        {dayPosts[0].media.length > 0 && dayPosts[0].media[0].kind === 'image' && (
+                          <div className="h-12 rounded overflow-hidden mb-1">
+                            <img src={`/api/media/file/${dayPosts[0].media[0].id}`} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        )}
                         <div className="text-[10px] font-semibold text-lime truncate">
                           {dayPosts[0].title || dayPosts[0].body.slice(0, 30)}
                         </div>
                         <div className="text-[9px] text-graphite-400">
-                          {dayPosts[0].publications.length} кан.
+                          {dayPosts[0].publications.length} кан.{dayPosts[0].media.length > 0 && ` · ${dayPosts[0].media.length} медиа`}
                         </div>
                       </div>
                     )}
@@ -260,11 +265,17 @@ function DayModal({
                       ))}
                     </div>
                     {post.media.length > 0 && (
-                      <div className="flex gap-1 mt-2">
+                      <div className="flex gap-1.5 mt-2">
                         {post.media.slice(0, 5).map((m) => (
-                          <span key={m.id} className="chip text-[10px]">
-                            {m.kind === 'image' ? '🖼' : m.kind === 'video' ? '🎬' : '📎'} {m.filename}
-                          </span>
+                          m.kind === 'image' ? (
+                            <div key={m.id} className="w-12 h-12 rounded-lg overflow-hidden border border-graphite-700">
+                              <img src={`/api/media/file/${m.id}`} alt="" className="w-full h-full object-cover" />
+                            </div>
+                          ) : (
+                            <span key={m.id} className="chip text-[10px]">
+                              {m.kind === 'video' ? '🎬' : '📎'} {m.filename}
+                            </span>
+                          )
                         ))}
                         {post.media.length > 5 && <span className="chip text-[10px]">+{post.media.length - 5}</span>}
                       </div>
