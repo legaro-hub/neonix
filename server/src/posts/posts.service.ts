@@ -118,17 +118,32 @@ export class PostsService {
         throw new BadRequestException('Один или несколько каналов не принадлежат вам');
       }
 
-      await this.prisma.$transaction([
-        this.prisma.postPublication.deleteMany({ where: { postId } }),
-        this.prisma.postPublication.createMany({
-          data: data.socialAccountIds.map((saId) => ({
+      const existingPubs = await this.prisma.postPublication.findMany({
+        where: { postId },
+        select: { socialAccountId: true, status: true },
+      });
+      const publishedIds = new Set(
+        existingPubs.filter((p) => p.status === 'published' || p.status === 'in_progress').map((p) => p.socialAccountId)
+      );
+
+      const toDelete = data.socialAccountIds.filter((id) => !publishedIds.has(id));
+      if (toDelete.length > 0) {
+        await this.prisma.postPublication.deleteMany({
+          where: { postId, socialAccountId: { in: toDelete } },
+        });
+      }
+
+      const toCreate = data.socialAccountIds.filter((id) => !publishedIds.has(id));
+      if (toCreate.length > 0) {
+        await this.prisma.postPublication.createMany({
+          data: toCreate.map((saId) => ({
             postId,
             socialAccountId: saId,
             status: data.scheduledAt ? 'queued' : 'draft',
             scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : new Date(),
           })),
-        }),
-      ]);
+        });
+      }
     }
 
     return this.prisma.post.update({

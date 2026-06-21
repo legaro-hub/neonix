@@ -60,6 +60,65 @@ const DEFAULT_TEMPLATES = [
   { id: '6', name: 'Цитата', text: '💬 «Цитата дня»\n\n— Автор' },
 ];
 
+const EMOJI_CATEGORIES = [
+  { name: 'Частые', emojis: ['👍', '❤️', '🔥', '⭐', '✅', '❌', '🎉', '📢', '💬', '📊', '🔗', '💡', '🚀', '💰', '🎯', '📌'] },
+  { name: 'Действия', emojis: ['👉', '👆', '👇', '👈', '✅', '❌', '⚡', '💪', '🙏', '👏', '🤝', '🎉'] },
+  { name: 'Эмоции', emojis: ['😊', '😍', '🤔', '😎', '🥳', '😢', '😱', '🤩', '💀', '🥳', '😂', '🤣'] },
+  { name: 'Бизнес', emojis: ['💰', '📈', '📊', '💼', '🏢', '📅', '⏰', '📈', '📉', '💳', '🏦', '🛒'] },
+];
+
+function EmojiPicker({ onEmoji }: { onEmoji: (emoji: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [cat, setCat] = useState(0);
+
+  return (
+    <div className="relative">
+      <button type="button" onClick={() => setOpen(!open)} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Эмодзи">😊</button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-50 bg-graphite-900 border border-graphite-700 rounded-xl p-3 shadow-xl w-64">
+          <div className="flex gap-1 mb-2 border-b border-graphite-700 pb-2">
+            {EMOJI_CATEGORIES.map((c, i) => (
+              <button key={i} type="button" onClick={() => setCat(i)} className={`text-xs px-2 py-1 rounded ${cat === i ? 'bg-lime/20 text-lime' : 'text-graphite-400 hover:text-white'}`}>{c.name}</button>
+            ))}
+          </div>
+          <div className="grid grid-cols-8 gap-1">
+            {EMOJI_CATEGORIES[cat].emojis.map((e) => (
+              <button key={e} type="button" onClick={() => { onEmoji(e); setOpen(false); }} className="text-lg hover:bg-graphite-800 rounded p-1 transition">{e}</button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TelegramPreview({ title, body, mediaCount }: { title: string; body: string; mediaCount: number }) {
+  const text = body || 'Начните писать...';
+  return (
+    <div className="card p-4">
+      <h3 className="font-display text-sm font-bold text-white mb-3">👁 Превью Telegram</h3>
+      <div className="rounded-xl overflow-hidden" style={{ background: '#1a1d23' }}>
+        <div className="p-3">
+          {title && <div className="font-bold text-sm text-white mb-1">{title}</div>}
+          <div className="text-sm text-gray-200 whitespace-pre-wrap break-words" style={{ fontSize: '13px', lineHeight: '1.4' }}>
+            {text.slice(0, 500)}{text.length > 500 ? '...' : ''}
+          </div>
+          {mediaCount > 0 && (
+            <div className="mt-2 flex items-center gap-1 text-[10px] text-gray-400">
+              <span>📎 {mediaCount} {mediaCount === 1 ? 'файл' : 'файлов'}</span>
+            </div>
+          )}
+          <div className="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
+            <span>9:41</span>
+            <span>👁 0</span>
+          </div>
+        </div>
+      </div>
+      <p className="mt-2 text-[10px] text-graphite-500 text-center">Так выглядит в Telegram</p>
+    </div>
+  );
+}
+
 function TemplatesPanel({ onInsert }: { onInsert: (text: string) => void }) {
   const [templates, setTemplates] = useState(() => {
     const saved = localStorage.getItem('neonix_templates');
@@ -349,6 +408,8 @@ export function PostEditorPage() {
                     <button type="button" onClick={() => insertMd('\n> ', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Цитата">❝</button>
                     <button type="button" onClick={() => document.execCommand('insertUnorderedList')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Список">☰</button>
                     <button type="button" onClick={() => insertMd('\n---\n', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Разделитель">—</button>
+                <div className="w-px bg-graphite-700 mx-1" />
+                <EmojiPicker onEmoji={(e) => { if (editorRef.current) { editorRef.current.focus(); document.execCommand('insertText', false, e); syncBody(); } }} />
                   </div>
                   <div
                     ref={editorRef}
@@ -361,7 +422,9 @@ export function PostEditorPage() {
                 </div>
                 <div className="flex items-center justify-between mt-1.5">
                   <p className="text-xs text-graphite-500">Форматирование: **жирный**, *курсив*, `код`, [ссылки](url), &gt; цитаты</p>
-                  <span className="text-xs text-graphite-600">{body.length} символов</span>
+                  <span className={`text-xs ${body.length > 4096 ? 'text-red-400' : body.length > 3500 ? 'text-yellow-400' : 'text-graphite-600'}`}>
+                    {body.length} / 4096
+                  </span>
                 </div>
               </div>
 
@@ -418,8 +481,8 @@ export function PostEditorPage() {
               </div>
             </div>
 
-            {/* Правая колонка — шаблоны */}
-            <div className="hidden lg:block">
+            {/* Правая колонка — шаблоны + превью */}
+            <div className="hidden lg:block space-y-4">
               <TemplatesPanel onInsert={(text) => {
                 if (editorRef.current) {
                   editorRef.current.focus();
@@ -427,6 +490,7 @@ export function PostEditorPage() {
                   syncBody();
                 }
               }} />
+              <TelegramPreview title={title} body={body} mediaCount={totalCount} />
             </div>
           </div>
 

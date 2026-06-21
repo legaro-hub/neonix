@@ -232,10 +232,23 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private formatPostText(title: string | null, body: string): string {
+    let text = this.markdownToHtml(body);
     if (title) {
-      return `<b>${this.escapeHtml(title)}</b>\n\n${body}`;
+      text = `<b>${this.escapeHtml(title)}</b>\n\n${text}`;
     }
-    return body;
+    return text;
+  }
+
+  private markdownToHtml(md: string): string {
+    let html = md;
+    html = html.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    html = html.replace(/\*(.+?)\*/g, '<i>$1</i>');
+    html = html.replace(/_(.+?)_/g, '<i>$1</i>');
+    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    html = html.replace(/^> (.+)$/gm, '<i>$1</i>');
+    html = html.replace(/^---$/gm, '──────────');
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    return html;
   }
 
   private escapeHtml(text: string): string {

@@ -277,7 +277,7 @@ export function AnalyticsPage() {
               {posts.length === 0 ? (
                 <p className="text-sm text-graphite-400 text-center py-8">Пока нет постов</p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                   {posts.map((post) => (
                     <div key={post.id} className="flex items-center justify-between p-3 rounded-xl bg-graphite-850 border border-graphite-800">
                       <div className="flex-1 min-w-0">
