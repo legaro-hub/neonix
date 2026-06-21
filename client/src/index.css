@@ -71,3 +71,114 @@
     @apply inline-flex items-center gap-1.5 rounded-full border border-graphite-700 bg-graphite-850 px-3 py-1 text-xs font-medium text-graphite-200;
   }
 }
+
+/* Glitch animation for logo */
+@keyframes glitch {
+  0%, 100% { text-shadow: 2px 0 #d4ff3a, -2px 0 #ff0040; transform: translate(0); }
+  20% { text-shadow: -2px 2px #d4ff3a, 2px -2px #ff0040; transform: translate(-2px, 1px); }
+  40% { text-shadow: 2px -2px #d4ff3a, -2px 2px #ff0040; transform: translate(2px, -1px); }
+  60% { text-shadow: -1px 1px #d4ff3a, 1px -1px #ff0040; transform: translate(-1px, 2px); }
+  80% { text-shadow: 1px -1px #d4ff3a, -1px 1px #ff0040; transform: translate(1px, -2px); }
+}
+
+@keyframes glitch-skew {
+  0%, 100% { transform: skewX(0deg); }
+  20% { transform: skewX(-2deg); }
+  40% { transform: skewX(2deg); }
+  60% { transform: skewX(-1deg); }
+  80% { transform: skewX(1deg); }
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(212, 255, 58, 0.3), 0 0 20px rgba(212, 255, 58, 0.1); }
+  50% { box-shadow: 0 0 15px rgba(212, 255, 58, 0.5), 0 0 40px rgba(212, 255, 58, 0.2); }
+}
+
+@keyframes cyber-flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.3; }
+  94% { opacity: 1; }
+  96% { opacity: 0.5; }
+  97% { opacity: 1; }
+}
+
+@keyframes cyber-border {
+  0%, 100% { border-color: rgba(212, 255, 58, 0.2); }
+  50% { border-color: rgba(212, 255, 58, 0.6); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes data-stream {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 0% 100%; }
+}
+
+.glitch-text {
+  animation: glitch 3s infinite;
+}
+
+.glitch-skew {
+  animation: glitch-skew 3s infinite;
+}
+
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanline::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(212, 255, 58, 0.3), transparent);
+  animation: scanline 4s linear infinite;
+  pointer-events: none;
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.cyber-flicker {
+  animation: cyber-flicker 5s infinite;
+}
+
+.cyber-border {
+  animation: cyber-border 3s ease-in-out infinite;
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Cyberpunk grid background */
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(212, 255, 58, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 255, 58, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Neon glow effect */
+.neon-glow {
+  text-shadow: 0 0 10px rgba(212, 255, 58, 0.5), 0 0 20px rgba(212, 255, 58, 0.3), 0 0 40px rgba(212, 255, 58, 0.1);
+}
+
+/* Cyber line separator */
+.cyber-line {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 255, 58, 0.4), transparent);
+}

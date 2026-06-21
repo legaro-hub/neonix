@@ -98,9 +98,9 @@ export function LandingPage() {
               Автопостинг для Telegram · другие соцсети в roadmap
             </div>
             <h1 className="font-display text-4xl font-bold leading-tight tracking-tight text-white sm:text-6xl">
-              Планируйте посты.
+              <span className="glitch-text inline-block">Планируйте посты.</span>
               <br />
-              <span className="text-lime">Публикуйте автоматически.</span>
+              <span className="text-lime neon-glow">Публикуйте автоматически.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-lg text-graphite-300">
               Neonix — один календарь на все ваши Telegram-каналы. Создавайте контент,
@@ -120,10 +120,10 @@ export function LandingPage() {
           </div>
 
           {/* App mockup */}
-          <div className="relative mx-auto mt-16 max-w-5xl">
+          <div className="relative mx-auto mt-16 max-w-5xl float-animation">
             <div className="absolute -inset-x-8 top-0 h-64 bg-lime/10 blur-3xl" />
-            <div className="card relative overflow-hidden p-2 shadow-2xl">
-              <div className="rounded-xl bg-graphite-950 p-5">
+            <div className="card relative overflow-hidden p-2 shadow-2xl cyber-border">
+              <div className="rounded-xl bg-graphite-950 p-5 scanline">
                 <CalendarMockup />
               </div>
             </div>
@@ -132,16 +132,17 @@ export function LandingPage() {
       </section>
 
       {/* Stats strip */}
-      <section className="border-y border-graphite-800 bg-graphite-900/30">
+      <section className="border-y border-graphite-800 bg-graphite-900/30 cyber-grid">
         <div className="container-app grid grid-cols-2 gap-6 py-10 text-center sm:grid-cols-4">
           {[
-            { v: '98%', l: 'успешных публикаций' },
-            { v: '< 5 c', l: 'до отправки по расписанию' },
-            { v: '∞', l: 'постов на тарифе Pro' },
-            { v: '24/7', l: 'работа очереди' },
+            { v: '98%', l: 'успешных публикаций', icon: '⚡' },
+            { v: '< 5 c', l: 'до отправки по расписанию', icon: '⏱' },
+            { v: '∞', l: 'постов на тарифе Pro', icon: '🚀' },
+            { v: '24/7', l: 'работа очереди', icon: '🔄' },
           ].map((s) => (
-            <div key={s.l}>
-              <div className="font-display text-3xl font-bold text-lime">{s.v}</div>
+            <div key={s.l} className="group">
+              <div className="text-2xl mb-2">{s.icon}</div>
+              <div className="font-display text-3xl font-bold text-lime neon-glow">{s.v}</div>
               <div className="mt-1 text-xs text-graphite-400">{s.l}</div>
             </div>
           ))}
@@ -160,11 +161,11 @@ export function LandingPage() {
         </div>
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f) => (
-            <div key={f.title} className="card p-6 transition hover:border-graphite-600">
-              <div className="mb-4 inline-grid h-11 w-11 place-items-center rounded-xl bg-lime/10 text-lime ring-1 ring-lime/20">
+            <div key={f.title} className="card p-6 transition hover:border-graphite-600 group cyber-border">
+              <div className="mb-4 inline-grid h-11 w-11 place-items-center rounded-xl bg-lime/10 text-lime ring-1 ring-lime/20 group-hover:ring-lime/40 transition">
                 <f.icon className="h-5 w-5" />
               </div>
-              <h3 className="font-display text-lg font-semibold text-graphite-100">{f.title}</h3>
+              <h3 className="font-display text-lg font-semibold text-graphite-100 group-hover:text-lime transition">{f.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-graphite-300">{f.text}</p>
             </div>
           ))}
@@ -172,18 +173,19 @@ export function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="how" className="border-y border-graphite-800 bg-graphite-900/30">
+      <section id="how" className="border-y border-graphite-800 bg-graphite-900/30 cyber-grid">
         <div className="container-app py-20 sm:py-28">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
-              Четыре шага до первого запланированного поста
+              <span className="glitch-text inline-block">Четыре шага</span> до первого запланированного поста
             </h2>
           </div>
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((s) => (
-              <div key={s.n} className="relative">
-                <div className="font-display text-4xl font-bold text-graphite-700">{s.n}</div>
-                <h3 className="mt-3 font-display text-lg font-semibold text-graphite-100">{s.title}</h3>
+              <div key={s.n} className="relative group">
+                <div className="font-display text-4xl font-bold text-lime/20 group-hover:text-lime/40 transition">{s.n}</div>
+                <div className="cyber-line my-3" />
+                <h3 className="mt-3 font-display text-lg font-semibold text-graphite-100 group-hover:text-lime transition">{s.title}</h3>
                 <p className="mt-2 text-sm text-graphite-300">{s.text}</p>
               </div>
             ))}
@@ -201,19 +203,19 @@ export function LandingPage() {
           {PLANS.map((p) => (
             <div
               key={p.name}
-              className={`card relative flex flex-col p-7 ${
-                p.highlight ? 'border-lime/40 shadow-glow-sm' : ''
+              className={`card relative flex flex-col p-7 transition-all duration-300 ${
+                p.highlight ? 'border-lime/40 shadow-glow-sm pulse-glow' : 'hover:border-graphite-600'
               }`}
             >
               {p.highlight && (
-                <span className="absolute -top-3 left-7 rounded-full bg-lime px-3 py-1 text-xs font-bold text-graphite-950">
+                <span className="absolute -top-3 left-7 rounded-full bg-lime px-3 py-1 text-xs font-bold text-graphite-950 cyber-flicker">
                   Популярный
                 </span>
               )}
               <h3 className="font-display text-xl font-bold text-white">{p.name}</h3>
               <p className="mt-1 text-sm text-graphite-400">{p.desc}</p>
               <div className="mt-5 flex items-baseline gap-1">
-                <span className="font-display text-4xl font-bold text-graphite-100">{p.price}</span>
+                <span className={`font-display text-4xl font-bold ${p.highlight ? 'text-lime neon-glow' : 'text-graphite-100'}`}>{p.price}</span>
                 <span className="text-sm text-graphite-400">/ {p.period}</span>
               </div>
               <ul className="mt-6 flex-1 space-y-3">
@@ -237,16 +239,18 @@ export function LandingPage() {
 
       {/* CTA */}
       <section className="container-app pb-24">
-        <div className="card relative overflow-hidden p-10 text-center sm:p-16">
+        <div className="card relative overflow-hidden p-10 text-center sm:p-16 cyber-grid">
           <div className="pointer-events-none absolute inset-0 bg-grid-faint bg-[size:40px_40px] opacity-50" />
           <div className="relative mx-auto max-w-2xl">
             <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">
-              Готовы делегировать автопостинг?
+              <span className="glitch-text inline-block">Готовы делегировать</span>
+              <br />
+              <span className="text-lime neon-glow">автопостинг?</span>
             </h2>
             <p className="mt-4 text-graphite-300">
               Создайте аккаунт за полминуты и запланируйте первый пост сегодня.
             </p>
-            <Link to="/register" className="btn-primary mt-8">
+            <Link to="/register" className="btn-primary mt-8 pulse-glow">
               Начать бесплатно <ArrowRightIcon className="h-4 w-4" />
             </Link>
           </div>
