@@ -81,13 +81,12 @@ export class AuthController {
   async forgotPassword(@Req() req: any, @Res() res: any) {
     try {
       let email = '';
-      if (req.body && typeof req.body.email === 'string') {
-        email = req.body.email;
-      } else if (req.rawBody) {
-        try {
-          const parsed = JSON.parse(req.rawBody.toString());
-          email = parsed.email;
-        } catch {}
+      if (req.body) {
+        if (typeof req.body === 'string') {
+          try { email = JSON.parse(req.body).email; } catch {}
+        } else {
+          email = req.body.email;
+        }
       }
       if (!email) {
         return res.status(400).json({ statusCode: 400, message: 'Email is required' });
