@@ -32,10 +32,11 @@ function renderMd(text: string): string {
   html = html.replace(/\*(.+?)\*/g, '<i>$1</i>');
   html = html.replace(/_(.+?)_/g, '<i>$1</i>');
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, url) => {
-    const safeUrl = url.replace(/javascript:/gi, '').replace(/data:/gi, '').replace(/vbscript:/gi, '');
-    return `<a href="${safeUrl}" style="color:#87cefa">${text}</a>`;
-  });
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, url) => {
+      const safeUrl = url.replace(/javascript:/gi, '').replace(/data:/gi, '').replace(/vbscript:/gi, '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const safeText = text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      return `<a href="${safeUrl}" style="color:#87cefa">${safeText}</a>`;
+    });
   html = html.replace(/^&gt;\s?(.*)$/gm, '<blockquote style="border-left:2px solid #555;padding-left:8px;color:#999">$1</blockquote>');
   html = html.replace(/^[-*]\s+(.*)$/gm, '• $1');
   html = html.replace(/\n/g, '<br>');

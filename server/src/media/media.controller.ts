@@ -15,12 +15,16 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Response, Request } from 'express';
 import { MediaService } from './media.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PrismaService } from '../prisma/prisma.service';
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4'];
 
 @Controller('media')
 export class MediaController {
-  constructor(private readonly media: MediaService) {}
+  constructor(
+    private readonly media: MediaService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Post('upload/:postId')
   @UseGuards(JwtAuthGuard)
@@ -44,6 +48,11 @@ export class MediaController {
     if (!file) throw new BadRequestException('Файл не загружен');
 
     const userId = (req as any).user?.id;
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post || post.userId !== userId) {
+      throw new BadRequestException('Пост не найден');
+    }
+
     const assets = await this.media.listByPost(postId);
     if (assets.length >= 10) {
       throw new BadRequestException('Максимум 10 медиафайлов на пост');
@@ -53,7 +62,17 @@ export class MediaController {
   }
 
   @Get('file/:id')
-  async getFile(@Param('id') id: string, @Res() res: Response) {
+  @UseGuards(JwtAuthGuard)
+  async getFile(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
+    const userId = (req as any).user?.id;
+    const asset = await this.prisma.mediaAsset.findUnique({
+      where: { id },
+      include: { post: { select: { userId: true } } },
+    });
+    if (!asset || asset.post.userId !== userId) {
+      return res.status(404).json({ error: 'Файл не найден' });
+    }
+
     const file = await this.media.getFile(id);
     if (!file) {
       return res.status(404).json({ error: 'Файл не найден' });

@@ -1,10 +1,8 @@
 # Neonix
 
-Веб-приложение для планирования и автоматической публикации постов в Telegram (SaaS).
+SaaS-платформа для планирования и автоматической публикации контента в **Telegram** и **Pinterest**.
 Тёмный премиум-дизайн: графит + неоновый лайм.
 
-> MVP-этап. Реализованы: лендинг, регистрация/авторизация, личный кабинет, календарь, редактор постов, массовая загрузка, подключение Telegram-каналов через бота, публикация постов через Bot API, email-уведомления, восстановление пароля, MTProto аналитика, статистика каналов.
->
 > **Домен:** [neonix.online](https://neonix.online) · **Email:** no-reply@neonix.online
 
 ## Стек
@@ -13,11 +11,12 @@
 |------|-----------|
 | Backend | Node.js 20+, NestJS 10, TypeScript, Prisma ORM |
 | БД | PostgreSQL 16 |
-| Auth | JWT access + refresh (httpOnly cookie), bcrypt, капча |
+| Auth | JWT access + refresh (httpOnly cookie), bcrypt, капча, подтверждение email |
 | Frontend | React 18, TypeScript, Vite, TailwindCSS, React Router |
-| Telegram | Bot API, webhook, автопривязка каналов |
-| Безопасность | валидация DTO, guards, ротация refresh-токенов, webhook secret |
-| Инфраструктура | Docker Compose, nginx (reverse proxy) |
+| Telegram | Bot API, webhook, автопривязка каналов, MTProto аналитика |
+| Pinterest | OAuth 2.0, API v5 (доски, пины, аналитика, bulk-загрузка) |
+| Безопасность | CSP, валидация DTO, guards, ротация refresh-токенов, rate limiting |
+| Инфраструктура | Docker Compose, Caddy (reverse proxy), email (docker-mailserver) |
 
 ## Структура
 
@@ -27,21 +26,24 @@ neonix/
 │   ├── prisma/              # схема БД + миграции
 │   ├── uploads/             # хранилище медиафайлов
 │   └── src/
-│       ├── auth/            # регистрация, вход, JWT, guards, капча
+│       ├── auth/            # регистрация, вход, JWT, guards, капча, подтверждение email
 │       ├── users/           # профиль пользователя, настройки
-│       ├── social-accounts/ # управление каналами Telegram
-│       ├── posts/           # CRUD постов, календарь, массовая загрузка
-│       ├── media/           # загрузка и хранение медиафайлов
-│       ├── telegram/        # webhook + polling бота, привязка каналов
-│       ├── common/          # утилиты (parseTtl)
+│       ├── social-accounts/ # управление каналами (Telegram + Pinterest)
+│       ├── posts/           # CRUD постов, календарь, массовая загрузка, воркер публикаций
+│       ├── media/           # загрузка и хранение медиафайлов (аутентифицированный доступ)
+│       ├── telegram/        # webhook + polling бота, привязка каналов, MTProto
+│       ├── pinterest/       # OAuth, доски, пины, аналитика, bulk-создание
+│       ├── email/           # шаблоны писем ( Neonix-стиль, тёмный + лайм)
+│       ├── common/          # DriverRegistry, SocialDriver interface
 │       └── prisma/          # обёртка над PrismaClient
 ├── client/                  # Vite + React SPA
 │   └── src/
-│       ├── components/      # Navbar, Sidebar, Logo, AuthLayout, иконки
+│       ├── components/      # DateTimePicker, CookieBanner, Sidebar, AuthLayout
 │       ├── lib/             # api-клиент, auth-context, ProtectedRoute, типы
-│       └── pages/           # все страницы приложения
-├── docker-compose.yml       # production: PostgreSQL + server + client
+│       └── pages/           # Dashboard, Channels, PostEditor, Calendar, Analytics, Pinterest
+├── docker-compose.yml       # production: PostgreSQL + server + client + Caddy + Mailpit
 ├── docker-compose.dev.yml   # development с hot-reload
+├── mailserver.env           # настройки почтового сервера
 └── docs/                    # план проекта и ТЗ
 ```
 
@@ -52,255 +54,122 @@ neonix/
 - Docker + Docker Compose
 
 ### Запуск (Docker)
-
 ```bash
 docker compose up --build
 ```
-
 - **Сайт:** http://localhost:3080
 - **API:** http://localhost:4000/api
-- **PostgreSQL:** localhost:5432 (neonix/neonix_dev)
 
 ### Development (hot-reload)
-
 ```bash
 docker compose -f docker-compose.dev.yml up
 ```
-
 - **Сайт:** http://localhost:5173
 - **API:** http://localhost:4000
+
+## Функционал
+
+### Telegram
+- Подключение каналов через бота (автопривязка)
+- Публикация текста, фото, видео, альбомов
+- Планирование по календарю
+- Массовая загрузка постов (TSV)
+- MTProto аналитика (просмотры, реакции)
+- Статистика каналов (подписчики, динамика)
+
+### Pinterest (полная интеграция)
+- OAuth-авторизация (Trial/Standard Access)
+- Управление досками (CRUD, секции)
+- Создание пинов (image, video, multi-image)
+- Массовая загрузка пинов (до 50 за раз)
+- Аналитика (показы, сохранения, клики, переходы)
+- Топ пинов по метрикам
+
+### Безопасность
+- **CSP** (Content Security Policy) — защита от XSS
+- **JWT** access (15мин) + refresh (30дн) с ротацией
+- **Аутентифицированный доступ к медиа** — проверка ownership
+- **Rate limiting** — глобальный + per-endpoint
+- **Валидация DTO** — class-validator на всех входах
+- **Подтверждение email** — верификация при регистрации
+- **Куки-баннер** — информирование пользователей
 
 ## API
 
 ### Аутентификация
-
-| Метод | Эндпоинт | Описание | Auth |
-|-------|----------|----------|------|
-| GET | `/api/auth/captcha` | Получить капчу (id + вопрос) | — |
-| POST | `/api/auth/register` | Регистрация (с капчей) | — |
-| POST | `/api/auth/login` | Вход, выдаёт access + refresh cookie | — |
-| POST | `/api/auth/refresh` | Обновление access по refresh cookie | cookie |
-| POST | `/api/auth/logout` | Отзыв refresh, очистка cookie | cookie |
-| GET | `/api/auth/me` | Текущий пользователь (по access) | Bearer |
-| POST | `/api/auth/forgot-password` | Запрос сброса пароля (отправляет email) | — |
-| POST | `/api/auth/reset-password` | Сброс пароля по токену | — |
-
-### Пользователь
-
-| Метод | Эндпоинт | Описание | Auth |
-|-------|----------|----------|------|
-| GET | `/api/users/me` | Профиль пользователя | Bearer |
-| PATCH | `/api/users/me` | Обновление профиля (name, email, timezone, language) | Bearer |
-| POST | `/api/users/me/change-password` | Смена пароля (отзывает все токены) | Bearer |
-| DELETE | `/api/users/me` | Удаление аккаунта | Bearer |
-| GET | `/api/users/me/notifications` | Настройки уведомлений | Bearer |
-| PATCH | `/api/users/me/notifications` | Обновление настроек уведомлений | Bearer |
-
-### Telegram-каналы
-
-| Метод | Эндпоинт | Описание | Auth |
-|-------|----------|----------|------|
-| POST | `/api/social-accounts/link` | Генерация кода привязки | Bearer |
-| GET | `/api/social-accounts` | Список подключённых каналов | Bearer |
-| GET | `/api/social-accounts/:id` | Информация о канале | Bearer |
-| PATCH | `/api/social-accounts/:id` | Обновление канала | Bearer |
-| DELETE | `/api/social-accounts/:id` | Отключение канала | Bearer |
-| POST | `/api/telegram/webhook` | Webhook от Telegram Bot API | secret header |
-
-### Посты
-
-| Метод | Эндпоинт | Описание | Auth |
-|-------|----------|----------|------|
-| GET | `/api/posts` | Список постов (фильтры: from, to, socialAccountId) | Bearer |
-| GET | `/api/posts/calendar?month=YYYY-MM` | Данные для календаря | Bearer |
-| GET | `/api/posts/:id` | Один пост | Bearer |
-| POST | `/api/posts` | Создание поста | Bearer |
-| POST | `/api/posts/bulk` | Массовая загрузка постов | Bearer |
-| PATCH | `/api/posts/:id` | Редактирование поста | Bearer |
-| DELETE | `/api/posts/:id` | Удаление поста | Bearer |
-
-### Медиа
-
-| Метод | Эндпоинт | Описание | Auth |
-|-------|----------|----------|------|
-| POST | `/api/media/upload/:postId` | Загрузка файла (multipart) | Bearer |
-| GET | `/api/media/file/:id` | Получение файла | Bearer |
-| DELETE | `/api/media/:id` | Удаление файла | Bearer |
-
-### Health
-
 | Метод | Эндпоинт | Описание |
 |-------|----------|----------|
-| GET | `/api/health` | Проверка работоспособности |
+| GET | `/api/auth/captcha` | Капча |
+| POST | `/api/auth/register` | Регистрация |
+| POST | `/api/auth/login` | Вход |
+| POST | `/api/auth/refresh` | Обновление токена |
+| POST | `/api/auth/logout` | Выход |
+| GET | `/api/auth/me` | Текущий пользователь |
+| POST | `/api/auth/forgot-password` | Сброс пароля |
+| POST | `/api/auth/reset-password` | Новый пароль |
+| GET | `/api/auth/verify-email` | Подтверждение email |
 
-## Маршруты приложения
+### Посты
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/posts` | Список постов |
+| POST | `/api/posts` | Создание поста |
+| POST | `/api/posts/bulk` | Массовая загрузка |
+| PATCH | `/api/posts/:id` | Редактирование |
+| DELETE | `/api/posts/:id` | Удаление |
+
+### Pinterest
+| Метод | Эндпоинт | Описание |
+|-------|----------|----------|
+| GET | `/api/pinterest/auth-url` | URL для OAuth |
+| GET | `/api/pinterest/boards` | Список досок |
+| POST | `/api/pinterest/boards` | Создать доску |
+| GET | `/api/pinterest/pins` | Список пинов |
+| POST | `/api/pinterest/pins` | Создать пин |
+| POST | `/api/pinterest/pins/bulk` | Массовая загрузка пинов |
+| GET | `/api/pinterest/analytics/account` | Аналитика аккаунта |
+| GET | `/api/pinterest/analytics/pins` | Топ пинов |
+
+## Маршруты
 
 | Путь | Доступ | Описание |
 |------|--------|----------|
 | `/` | публичный | Лендинг |
-| `/login` | публичный | Вход |
-| `/register` | публичный | Регистрация (с капчей) |
-| `/forgot-password` | публичный | Восстановление пароля |
-| `/reset-password?token=...` | публичный | Установка нового пароля |
-| `/help` | публичный | Помощь и FAQ |
-| `/terms` | публичный | Условия использования |
-| `/privacy` | публичный | Политика конфиденциальности |
-| `/blog` | публичный | Блог |
-| `/blog/:slug` | публичный | Статья блога |
+| `/login`, `/register` | публичный | Авторизация |
+| `/verify-email` | публичный | Подтверждение email |
+| `/privacy` | публичный | Политика конфиденциальности (RU/EN) |
 | `/app` | защищённый | Дашборд |
+| `/app/channels` | защищённый | Каналы и аккаунты (TG + Pinterest) |
+| `/app/posts/new` | защищённый | Создание поста (с TG-кнопками) |
 | `/app/calendar` | защищённый | Календарь публикаций |
-| `/app/posts/new` | защищённый | Создание поста |
-| `/app/posts/:id` | защищённый | Редактирование поста |
-| `/app/bulk-upload` | защищённый | Массовая загрузка |
-| `/app/channels` | защищённый | Управление каналами |
-| `/app/posts` | защищённый | Список постов |
-| `/app/analytics` | защищённый | Аналитика |
-| `/app/profile` | защищённый | Профиль |
-| `/app/settings` | защищённый | Настройки уведомлений |
-
-## Поток аутентификации
-
-```
-[Лендинг] → /register или /login
-    │  GET /api/auth/captcha → ответ: { id, question }
-    │  POST /api/auth/register|login → ответ: accessToken
-    ▼
-API возвращает accessToken (в теле) + ставит refreshToken в httpOnly cookie
-    │
-    ▼
-Frontend сохраняет accessToken в памяти, пользователь → /app (ProtectedRoute)
-    │  при 401 — авто-вызов /api/auth/refresh по cookie
-    ▼
-/api/users/me — данные профиля
-```
-
-## Поток привязки Telegram-канала
-
-```
-[Dashboard] → «Подключить канал»
-    │  POST /api/social-accounts/link → { code, botName }
-    ▼
-Пользователь пишет боту: /start <code>
-    │  POST /api/telegram/webhook (от Telegram)
-    ▼
-Бот связывает userId с chatId, просит добавить бота в канал
-    │
-    ▼
-Пользователь добавляет бота @manager_neonix_bot админом в канал
-    │  my_chat_member update → webhook
-    ▼
-Бот проверяет права, сохраняет канал → канал появляется в панели
-```
-
-## Календарь и посты
-
-- **Календарь** — отображает месяц, фильтр по каналам
-  - 1 пост на день → превью (заголовок + кол-во каналов)
-  - Несколько постов → заголовки (до 3), остальные свёрнуты
-  - Клик по дню → модальное окно со списком постов
-- **Редактор поста** — заголовок, текст (Markdown), до 10 медиа, дата/время, выбор каналов
-- **Массовая загрузка** — TSV-шаблон с примерами, загрузка файла, пакетная отправка
+| `/app/analytics` | защищённый | Аналитика (Telegram + Pinterest) |
 
 ## Роли
 
-| Роль | Описание | Лимит каналов |
-|------|----------|---------------|
-| `user` | Обычный пользователь | 1 |
-| `admin` | Администратор | без ограничений |
-| `superadmin` | Суперадминистратор | без ограничений |
+| Роль | Лимит каналов |
+|------|---------------|
+| `user` | 5 |
+| `admin` | без ограничений |
+| `superadmin` | без ограничений |
 
-## Безопасность
+## Инфраструктура
 
-- **JWT access** (15 мин) хранится в памяти (не в localStorage)
-- **Refresh token** в httpOnly cookie, path=/api/auth, SameSite=Lax
-- **Ротация refresh** — при каждом обновлении старый токен отзывается
-- **Смена пароля** — автоматически отзывает все refresh-токены
-- **Капча** — математический пример при регистрации
-- **Webhook secret** — проверяется через HTTP header `X-Telegram-Bot-Api-Secret-Token`
-- **Валидация DTO** — class-validator с whitelist и forbidNonWhitelisted
-- **Токены соцсетей** — шифруются при хранении
+- **Продукт (85.137.95.223)** — Neonix: Caddy + React + NestJS + PostgreSQL
+- **Почта (62.109.7.162)** — docker-mailserver: no-reply, support, info, news @neonix.online
+- **DNS (Reg.ru)** — A, MX, SPF, DKIM, DMARC записи
 
-## Переключение на PostgreSQL (локальная разработка)
+## Деплой
 
-1. Установите PostgreSQL
-2. В `server/.env` замените `DATABASE_URL`:
-   ```
-   DATABASE_URL="postgresql://user:pass@localhost:5432/neonix?schema=public"
-   ```
-3. `npx prisma migrate deploy`
-4. `npm run start:dev`
+```bash
+# На сервере 85.137.95.223
+cd /root/neonix
+docker compose build
+docker compose up -d
+```
 
-## Roadmap
+## Аудит безопасности
 
-### Готово (R0) ✅
-- Лендинг (Hero, фичи, тарифы, CTA)
-- Регистрация / вход (JWT + капча)
-- Личный кабинет
-- Профиль пользователя
+Последний аудит: 21 июня 2026.
+Исправлены: CSP, аутентификация медиа, XSS в markdown renderer, CORS.
 
-### Готово (R1) ✅
-- Подключение Telegram-каналов через бота
-- Флоу привязки: код → /start → добавление бота → автопривязка
-
-### Готово (R2) ✅
-- Редактор поста: текст (Markdown) + медиа (до 10 файлов)
-- Выбор каналов, дата/время публикации
-
-### Готово (R3) ✅
-- Календарь с фильтром по каналам
-- Превью постов, модальное окно дня
-
-### Готово (R4) ✅
-- Массовая загрузка постов (TSV-шаблон)
-- API: CRUD постов, календарь, bulk
-- Публикация через Telegram Bot API (sendMessage, sendPhoto, sendVideo, sendMediaGroup)
-- Очередь публикаций с retry (3 попытки, exponential backoff)
-- Email-уведомления об успешной/неуспешной публикации
-- MTProto аналитика (просмотры, реакции, репосты)
-- Статистика каналов (подписчики, динамика)
-- Восстановление пароля по email
-- Автоудаление медиа (90 дней retention)
-- Cyberpunk анимации на лендинге
-
-### В планах
-- WebSocket для статусов в реальном времени
-- Биллинг и тарифы (ЮKassa)
-- Мобильная навигация (hamburger menu)
-
-## Исправленные уязвимости (аудит)
-
-| ID | Уровень | Описание |
-|----|---------|----------|
-| S-01 | CRITICAL | Webhook secret проверялся из тела, а не из HTTP header |
-| S-03 | CRITICAL | CAPTCHA возвращала ответ клиенту |
-| S-08 | HIGH | parseTtlSeconds дублировался с разными дефолтами (15мин vs 30дн) |
-| S-18 | MEDIUM | Токены не отзывались при смене пароля |
-| B-01 | MEDIUM | Бесконечный цикл retry при невалидном токене |
-| B-02 | MEDIUM | UTC/local mismatch в календаре |
-| B-04 | MEDIUM | socialAccountId не проверялся на принадлежность пользователю |
-| B-05 | HIGH | Publication worker retry backoff игнорировался (scheduledAt не обновлялся) |
-| B-06 | HIGH | sendMediaGroup отправлял caption на FormData уровне вместо первого элемента медиа |
-| B-07 | MEDIUM | HTML-инъекция в email-шаблонах (user-controlled строки без escape) |
-| B-08 | MEDIUM | Отсутствие проверки ownership при загрузке/удалении медиафайлов |
-| B-09 | MEDIUM | Динамический import('fs') блокировал event loop в async контексте |
-| B-10 | LOW | Email-уведомления о публикации не были подключены к воркеру |
-
-## Скрипты
-
-### Backend (`server/`)
-| Команда | Действие |
-|---------|----------|
-| `npm run start:dev` | Запуск с hot-reload |
-| `npm run build` | Сборка в `dist/` |
-| `npm run start:prod` | Запуск собранного |
-| `npx prisma migrate dev` | Создать/применить миграции |
-| `npx prisma studio` | GUI для БД |
-| `npx jest` | Запуск unit-тестов (78 тестов) |
-| `npx tsc --noEmit` | Проверка типов TypeScript |
-
-### Frontend (`client/`)
-| Команда | Действие |
-|---------|----------|
-| `npm run dev` | Dev-сервер |
-| `npm run build` | Production-сборка в `dist/` |
-| `npm run preview` | Превью сборки |
+См. `docs/SECURITY_AUDIT.md` для деталей.

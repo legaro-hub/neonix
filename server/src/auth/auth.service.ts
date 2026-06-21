@@ -45,7 +45,17 @@ export class AuthService {
     });
 
     this.logger.log(`Registered user ${user.email}`);
-    this.email.sendWelcome(user.email, user.name ?? '').catch(() => {});
+
+    const verifyToken = randomBytes(32).toString('hex');
+    const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await this.prisma.emailVerificationToken.create({
+      data: { token: verifyToken, userId: user.id, expiresAt: verifyExpires },
+    });
+
+    const appUrl = this.config.get<string>('APP_URL') ?? 'https://neonix.online';
+    const verifyUrl = `${appUrl}/verify-email?token=${verifyToken}`;
+    this.email.sendVerificationEmail(user.email, user.name ?? '', verifyUrl).catch(() => {});
+
     return this.issueTokens(user.id, user.email, user.name, user.timezone);
   }
 
@@ -112,6 +122,34 @@ export class AuthService {
       createdAt: user.createdAt,
       channelsCount: user.socialAccounts.length,
     };
+  }
+
+  async verifyEmail(token: string): Promise<{ success: boolean }> {
+    const verificationToken = await this.prisma.emailVerificationToken.findUnique({
+      where: { token },
+    });
+
+    if (!verificationToken || verificationToken.expiresAt < new Date()) {
+      throw new BadRequestException('Недействительная или истёкшая ссылка подтверждения');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: verificationToken.userId },
+        data: { emailVerified: true },
+      }),
+      this.prisma.emailVerificationToken.delete({
+        where: { id: verificationToken.id },
+      }),
+    ]);
+
+    const user = await this.prisma.user.findUnique({ where: { id: verificationToken.userId } });
+    if (user) {
+      this.email.sendWelcome(user.email, user.name ?? '').catch(() => {});
+    }
+
+    this.logger.log(`Email verified for user ${verificationToken.userId}`);
+    return { success: true };
   }
 
   async forgotPassword(email: string): Promise<{ success: boolean }> {

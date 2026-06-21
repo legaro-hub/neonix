@@ -17,14 +17,16 @@ model User {
   role         String   @default("user")
   timezone     String   @default("Europe/Moscow")
   language     String   @default("ru")
+  emailVerified Boolean  @default(false) @map("email_verified")
   createdAt    DateTime @default(now()) @db.Timestamptz()
   updatedAt    DateTime @updatedAt @db.Timestamptz()
 
-  refreshTokens        RefreshToken[]
-  socialAccounts       SocialAccount[]
-  notificationSettings NotificationSettings?
-  posts                Post[]
-  passwordResetTokens  PasswordResetToken[]
+  refreshTokens          RefreshToken[]
+  socialAccounts         SocialAccount[]
+  notificationSettings   NotificationSettings?
+  posts                  Post[]
+  passwordResetTokens    PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@map("users")
 }
@@ -157,4 +159,16 @@ model ChannelStat {
 
   @@index([socialAccountId, createdAt])
   @@map("channel_stats")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  token     String   @unique
+  userId    String   @db.Uuid @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @db.Timestamptz() @map("expires_at")
+  createdAt DateTime @default(now()) @db.Timestamptz() @map("created_at")
+
+  @@index([userId])
+  @@map("email_verification_tokens")
 }

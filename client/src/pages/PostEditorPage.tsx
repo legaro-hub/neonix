@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
+import { DateTimePicker } from '../components/DateTimePicker';
 import { api, HttpError } from '../lib/api';
 import type { SocialAccount } from '../lib/types';
 
@@ -61,10 +62,16 @@ const DEFAULT_TEMPLATES = [
 ];
 
 const EMOJI_CATEGORIES = [
-  { name: 'Частые', emojis: ['👍', '❤️', '🔥', '⭐', '✅', '❌', '🎉', '📢', '💬', '📊', '🔗', '💡', '🚀', '💰', '🎯', '📌'] },
-  { name: 'Действия', emojis: ['👉', '👆', '👇', '👈', '✅', '❌', '⚡', '💪', '🙏', '👏', '🤝', '🎉'] },
-  { name: 'Эмоции', emojis: ['😊', '😍', '🤔', '😎', '🥳', '😢', '😱', '🤩', '💀', '🥳', '😂', '🤣'] },
-  { name: 'Бизнес', emojis: ['💰', '📈', '📊', '💼', '🏢', '📅', '⏰', '📈', '📉', '💳', '🏦', '🛒'] },
+  { name: 'Частые', emojis: ['👍', '❤️', '🔥', '⭐', '✅', '❌', '🎉', '📢', '💬', '📊', '🔗', '💡', '🚀', '💰', '🎯', '📌', '💎', '🏆', '⚡', '✨'] },
+  { name: 'Действия', emojis: ['👉', '👆', '👇', '👈', '👉', '💪', '🙏', '👏', '🤝', '👋', '✋', '🖖', '🫶', '🫡', '🤌', '✊', '🫰', '🫳', '🫴', '💁'] },
+  { name: 'Эмоции', emojis: ['😊', '😍', '🤔', '😎', '🥳', '😢', '😱', '🤩', '💀', '😂', '🤣', '😏', '🥺', '😴', '🤯', '😤', '🫠', '😈', '👻', '🤡'] },
+  { name: 'Бизнес', emojis: ['💰', '📈', '📊', '💼', '🏢', '📅', '⏰', '📉', '💳', '🏦', '🛒', '📦', '📋', '📝', '📁', '🗂', '📌', '🏷', '🔍', '🧲'] },
+  { name: 'Соцсети', emojis: ['📱', '💻', '🖥', '📷', '🎥', '📸', '🎞', '📹', '📺', '🔊', '📻', '🎵', '🎶', '🎧', '🎤', '🖥', '⌚', '🎮', '🕹', '⌨'] },
+  { name: 'Еда', emojis: ['🍕', '🍔', '🍟', '🌮', '🍣', '🍜', '🥗', '🍰', '🎂', '🍩', '🍪', '☕', '🍵', '🧃', '🍷', '🥂', '🧋', '🫖', '🥤', '🍫'] },
+  { name: 'Природа', emojis: ['🌸', '🌺', '🌻', '🌷', '🌹', '🪷', '🌿', '🍀', '🌙', '⭐', '🌈', '☀️', '⛅', '🌊', '🔥', '❄️', '🍃', '🍂', '🌍', '🦊'] },
+  { name: 'Животные', emojis: ['🐶', '🐱', '🦊', '🐻', '🐼', '🐨', '🦁', '🐯', '🐸', '🦋', '🐝', '🐙', '🦈', '🐬', '🦄', '🐉', '🦅', '🦜', '🐧', '🦘'] },
+  { name: 'Транспорт', emojis: ['🚗', '🚕', '🚌', '🏎', '🚓', '🚑', '🚒', '✈️', '🚀', '🛸', '🚁', '⛵', '🚂', '🏍', '🚲', '🛹', '🚀', '⛵', '🛸', '🚂'] },
+  { name: 'Технологии', emojis: ['🖥', '💻', '📱', '⌨', '🖱', '💾', '📀', '💿', '🔌', '🔋', '📡', '🛰', '🤖', '👾', '🎮', '🕹', '🧮', '🔬', '🔭', '⚗'] },
 ];
 
 function EmojiPicker({ onEmoji }: { onEmoji: (emoji: string) => void }) {
@@ -75,17 +82,77 @@ function EmojiPicker({ onEmoji }: { onEmoji: (emoji: string) => void }) {
     <div className="relative">
       <button type="button" onClick={() => setOpen(!open)} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Эмодзи">😊</button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-graphite-900 border border-graphite-700 rounded-xl p-3 shadow-xl w-64">
-          <div className="flex gap-1 mb-2 border-b border-graphite-700 pb-2">
+        <div className="absolute top-full left-0 mt-1 z-50 bg-graphite-900 border border-graphite-700 rounded-xl p-3 shadow-xl w-72">
+          <div className="flex gap-0.5 mb-2 border-b border-graphite-700 pb-2 overflow-x-auto flex-nowrap">
             {EMOJI_CATEGORIES.map((c, i) => (
-              <button key={i} type="button" onClick={() => setCat(i)} className={`text-xs px-2 py-1 rounded ${cat === i ? 'bg-lime/20 text-lime' : 'text-graphite-400 hover:text-white'}`}>{c.name}</button>
+              <button key={i} type="button" onClick={() => setCat(i)} className={`text-[10px] px-2 py-1 rounded whitespace-nowrap ${cat === i ? 'bg-lime/20 text-lime' : 'text-graphite-400 hover:text-white'}`}>{c.name}</button>
             ))}
           </div>
-          <div className="grid grid-cols-8 gap-1">
-            {EMOJI_CATEGORIES[cat].emojis.map((e) => (
-              <button key={e} type="button" onClick={() => { onEmoji(e); setOpen(false); }} className="text-lg hover:bg-graphite-800 rounded p-1 transition">{e}</button>
+          <div className="grid grid-cols-8 gap-0.5">
+            {EMOJI_CATEGORIES[cat].emojis.map((e, i) => (
+              <button key={`${e}-${i}`} type="button" onClick={() => { onEmoji(e); setOpen(false); }} className="text-lg hover:bg-graphite-800 rounded p-1 transition">{e}</button>
             ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const TG_BUTTONS = [
+  { label: 'Читать далее', icon: '📖', text: '[Читать далее](https://example.com)' },
+  { label: 'Подписаться', icon: '➕', text: '[Подписаться](https://t.me/channel)' },
+  { label: 'Ссылка на канал', icon: '📢', text: '[📢 Наш канал](https://t.me/channel)' },
+  { label: 'Ссылка на сайт', icon: '🌐', text: '[🌐 Перейти на сайт](https://example.com)' },
+  { label: 'Ссылка на бот', icon: '🤖', text: '[🤖 Открыть бота](https://t.me/bot)' },
+  { label: 'Кастомная ссылка', icon: '🔗', text: '' },
+  { label: 'Спойлер текст', icon: '👻', text: '||текст спойлера||' },
+  { label: 'Код inline', icon: '💻', text: '`код`' },
+  { label: 'Моноширинный блок', icon: '📝', text: '```\nблок кода\n```' },
+  { label: 'Цитата', icon: '❝', text: '\n> цитата\n' },
+  { label: 'Список', icon: '•', text: '\n• пункт 1\n• пункт 2\n• пункт 3\n' },
+  { label: 'Нумерованный список', icon: '1.', text: '\n1. пункт\n2. пункт\n3. пункт\n' },
+  { label: 'Горизонтальная линия', icon: '—', text: '\n\n──────────\n\n' },
+];
+
+function TelegramButtonInserter({ onInsert }: { onInsert: (text: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleClick = (btn: typeof TG_BUTTONS[0]) => {
+    if (btn.label === 'Кастомная ссылка') {
+      const url = prompt('Введите URL:');
+      if (!url) return;
+      const text = prompt('Текст ссылки:');
+      onInsert(`[${text || 'ссылка'}](${url.replace(/javascript:/gi, '')})`);
+    } else {
+      onInsert(btn.text);
+    }
+    setOpen(false);
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(!open)} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Telegram-кнопки">
+        TG
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 mt-1 z-50 bg-graphite-900 border border-graphite-700 rounded-xl p-2 shadow-xl w-56 max-h-[400px] overflow-y-auto">
+          <div className="text-[10px] uppercase tracking-wider text-graphite-500 px-2 py-1 mb-1">Telegram</div>
+          {TG_BUTTONS.map((btn) => (
+            <button key={btn.label} type="button" onClick={() => handleClick(btn)} className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-graphite-300 hover:bg-graphite-800 hover:text-white rounded-lg transition text-left">
+              <span className="w-5 text-center text-xs">{btn.icon}</span>
+              <span>{btn.label}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -381,8 +448,11 @@ export function PostEditorPage() {
                     <button type="button" onClick={() => insertMd('\n> ', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Цитата">❝</button>
                     <button type="button" onClick={() => document.execCommand('insertUnorderedList')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Список">☰</button>
                     <button type="button" onClick={() => insertMd('\n---\n', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Разделитель">—</button>
-                <div className="w-px bg-graphite-700 mx-1" />
-                <EmojiPicker onEmoji={(e) => { if (editorRef.current) { editorRef.current.focus(); document.execCommand('insertText', false, e); syncBody(); } }} />
+                    <div className="w-px bg-graphite-700 mx-1" />
+                    <button type="button" onClick={() => insertMd('||', '||')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white font-mono" title="Спойлер">||</button>
+                    <button type="button" onClick={() => insertMd('\n| ', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-300 hover:bg-graphite-800 hover:text-white" title="Цитата Telegram">❝</button>
+                    <TelegramButtonInserter onInsert={(text) => { if (editorRef.current) { editorRef.current.focus(); document.execCommand('insertText', false, text); syncBody(); } }} />
+                    <EmojiPicker onEmoji={(e) => { if (editorRef.current) { editorRef.current.focus(); document.execCommand('insertText', false, e); syncBody(); } }} />
                   </div>
                   <div
                     ref={editorRef}
@@ -467,27 +537,36 @@ export function PostEditorPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="label">Дата публикации</label>
-              <input type="date" className="input" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} />
-            </div>
-            <div>
-              <label className="label">Время</label>
-              <input type="time" className="input" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} disabled={!scheduledDate} />
+            <div className="sm:col-span-2">
+              <label className="label">Дата и время публикации</label>
+              <DateTimePicker
+                date={scheduledDate}
+                time={scheduledTime}
+                onDateChange={setScheduledDate}
+                onTimeChange={setScheduledTime}
+              />
             </div>
           </div>
 
           <div>
-            <label className="label">Каналы</label>
+            <label className="label">Каналы и аккаунты</label>
             {channels.length === 0 ? (
-              <p className="text-sm text-graphite-400">Нет подключённых каналов. <a href="/app" className="text-lime hover:underline">Подключить</a></p>
+              <p className="text-sm text-graphite-400">Нет подключённых аккаунтов. <a href="/app/channels" className="text-lime hover:underline">Подключить</a></p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {channels.map((ch) => (
-                  <button key={ch.id} type="button" onClick={() => toggleChannel(ch.id)} className={`rounded-xl border px-4 py-2 text-sm transition ${selectedChannels.includes(ch.id) ? 'border-lime/50 bg-lime/10 text-lime' : 'border-graphite-700 bg-graphite-850 text-graphite-300 hover:border-graphite-600'}`}>
-                    {ch.title}
-                  </button>
-                ))}
+                {channels.map((ch) => {
+                  const isTg = ch.platform === 'telegram';
+                  const isPi = ch.platform === 'pinterest';
+                  return (
+                    <button key={ch.id} type="button" onClick={() => toggleChannel(ch.id)} className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm transition ${selectedChannels.includes(ch.id) ? 'border-lime/50 bg-lime/10 text-lime' : 'border-graphite-700 bg-graphite-850 text-graphite-300 hover:border-graphite-600'}`}>
+                      <span className={`w-5 h-5 flex items-center justify-center text-xs ${isTg ? 'text-sky-400' : isPi ? 'text-red-400' : 'text-graphite-400'}`}>
+                        {isTg ? '✈' : isPi ? '📌' : '•'}
+                      </span>
+                      <span>{ch.title}</span>
+                      <span className="text-[10px] text-graphite-500">{isTg ? 'TG' : isPi ? 'PI' : ''}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

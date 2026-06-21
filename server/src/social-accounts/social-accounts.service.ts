@@ -122,9 +122,9 @@ export class SocialAccountsService implements OnModuleInit, OnModuleDestroy {
     PENDING_LINKS.delete(chatId);
   }
 
-  async revokeByExternalId(externalId: string) {
+  async revokeByExternalId(externalId: string, platform = 'telegram') {
     await this.prisma.socialAccount.updateMany({
-      where: { externalId, platform: 'telegram' },
+      where: { externalId, platform },
       data: { status: 'revoked' },
     });
   }
@@ -136,13 +136,18 @@ export class SocialAccountsService implements OnModuleInit, OnModuleDestroy {
       title: string;
       username?: string;
       memberCount?: number;
+      platform?: string;
+      platformBotName?: string;
+      metadata?: Record<string, unknown>;
     },
   ) {
+    const platform = data.platform ?? 'telegram';
+
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Пользователь не найден');
 
     const existing = await this.prisma.socialAccount.findFirst({
-      where: { externalId: data.externalId, platform: 'telegram' },
+      where: { externalId: data.externalId, platform },
     });
 
     if (existing) {
@@ -180,9 +185,9 @@ export class SocialAccountsService implements OnModuleInit, OnModuleDestroy {
         externalId: data.externalId,
         title: data.title,
         username: data.username ?? null,
-        platform: 'telegram',
-        platformBotName: process.env.TG_BOT_NAME ?? 'manager_neonix_bot',
-        metadata: data.memberCount ? { memberCount: data.memberCount } : undefined,
+        platform,
+        platformBotName: data.platformBotName ?? null,
+        metadata: (data.metadata as any) ?? undefined,
       },
     });
   }

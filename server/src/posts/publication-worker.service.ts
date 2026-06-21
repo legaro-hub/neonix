@@ -5,6 +5,8 @@ import { unlink } from 'fs/promises';
 import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.service';
+import { DriverRegistry } from '../common/drivers/driver-registry';
+import type { MediaDescriptor } from '../common/interfaces/social-driver.interface';
 
 @Injectable()
 export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
@@ -17,6 +19,7 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly emailService: EmailService,
+    private readonly driverRegistry: DriverRegistry,
   ) {}
 
   onModuleInit() {
@@ -126,7 +129,7 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
   private async publishOne(pub: any) {
     const { id, post, socialAccount } = pub;
 
-    this.logger.log(`Publishing post ${post.id} to ${socialAccount.title} (${socialAccount.externalId})`);
+    this.logger.log(`Publishing post ${post.id} to ${socialAccount.title} (${socialAccount.externalId}) [${socialAccount.platform}]`);
 
     await this.prisma.postPublication.update({
       where: { id },
@@ -134,29 +137,46 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
     });
 
     try {
-      const token = this.config.get<string>('TG_BOT_TOKEN');
-      if (!token) throw new Error('TG_BOT_TOKEN not set');
+      let result: { ok: boolean; messageId?: number; externalId?: string; externalUrl?: string; description?: string };
 
-      const chatId = socialAccount.externalId;
-      const text = this.formatPostText(post.title, post.body);
-
-      const media = await this.prisma.mediaAsset.findMany({
-        where: { postId: post.id },
-        orderBy: { ord: 'asc' },
-      });
-
-      let result;
-      if (media.length === 0) {
-        result = await this.sendTelegramMessage(token, chatId, text);
-      } else if (media.length === 1) {
-        const file = media[0];
-        if (file.kind === 'video') {
-          result = await this.sendTelegramVideo(token, chatId, file, text);
-        } else {
-          result = await this.sendTelegramPhoto(token, chatId, file, text);
-        }
+      if (socialAccount.platform === 'telegram') {
+        result = await this.publishToTelegram(socialAccount, post);
+      } else if (this.driverRegistry.has(socialAccount.platform)) {
+        const media = await this.prisma.mediaAsset.findMany({
+          where: { postId: post.id },
+          orderBy: { ord: 'asc' },
+        });
+        const driver = this.driverRegistry.get(socialAccount.platform);
+        const meta = (socialAccount.metadata as Record<string, unknown>) ?? {};
+        const pubResult = await driver.publish(
+          {
+            id: socialAccount.id,
+            externalId: socialAccount.externalId,
+            title: socialAccount.title,
+            username: socialAccount.username,
+            metadata: meta,
+            accessToken: meta.accessToken as string | undefined,
+            refreshToken: meta.refreshToken as string | undefined,
+          },
+          {
+            title: post.title,
+            body: post.body,
+            media: media.map((m) => ({
+              kind: m.kind as 'image' | 'video' | 'document',
+              storageKey: m.storageKey,
+              mimeType: m.mimeType,
+              filename: m.filename,
+            })),
+          },
+        );
+        result = {
+          ok: pubResult.ok,
+          externalId: pubResult.externalId,
+          externalUrl: pubResult.externalUrl,
+          description: pubResult.error,
+        };
       } else {
-        result = await this.sendTelegramMediaGroup(token, chatId, media, text);
+        throw new Error(`Платформа не поддерживается: ${socialAccount.platform}`);
       }
 
       if (result.ok) {
@@ -165,7 +185,8 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
           data: {
             status: 'published',
             publishedAt: new Date(),
-            externalId: String(result.messageId),
+            externalId: String(result.externalId ?? result.messageId),
+            externalUrl: result.externalUrl,
           },
         });
         this.logger.log(`Post ${post.id} published successfully to ${socialAccount.title}`);
@@ -178,12 +199,12 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
               user.name || 'Пользователь',
               post.title || 'Без заголовка',
               socialAccount.title,
-              `${this.config.get('APP_URL')}/app/posts/${post.id}`,
+              result.externalUrl || `${this.config.get('APP_URL')}/app/posts/${post.id}`,
             );
           }
         } catch { /* email is best-effort */ }
       } else {
-        throw new Error(result.description || 'Telegram API error');
+        throw new Error(result.description || 'Publishing API error');
       }
     } catch (err: any) {
       const maxAttempts = 3;
@@ -229,6 +250,39 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
         } catch { /* email is best-effort */ }
       }
     }
+  }
+
+  private async publishToTelegram(socialAccount: any, post: any) {
+    const token = this.config.get<string>('TG_BOT_TOKEN');
+    if (!token) throw new Error('TG_BOT_TOKEN not set');
+
+    const chatId = socialAccount.externalId;
+    const text = this.formatPostText(post.title, post.body);
+
+    const media = await this.prisma.mediaAsset.findMany({
+      where: { postId: post.id },
+      orderBy: { ord: 'asc' },
+    });
+
+    let result;
+    if (media.length === 0) {
+      result = await this.sendTelegramMessage(token, chatId, text);
+    } else if (media.length === 1) {
+      const file = media[0];
+      if (file.kind === 'video') {
+        result = await this.sendTelegramVideo(token, chatId, file, text);
+      } else {
+        result = await this.sendTelegramPhoto(token, chatId, file, text);
+      }
+    } else {
+      result = await this.sendTelegramMediaGroup(token, chatId, media, text);
+    }
+
+    return {
+      ok: result.ok,
+      messageId: result.messageId,
+      description: result.description,
+    };
   }
 
   private formatPostText(title: string | null, body: string): string {

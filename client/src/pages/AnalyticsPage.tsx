@@ -85,10 +85,16 @@ export function AnalyticsPage() {
   const [posts, setPosts] = useState<AnalyticsPost[]>([]);
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
+  const [platform, setPlatform] = useState<'telegram' | 'pinterest'>('telegram');
 
   // Channel stats (Bot API)
   const [channelStats, setChannelStats] = useState<ChannelStats[]>([]);
-  const [collecting, setCollecting] = useState(false);
+
+  // Pinterest analytics
+  const [piAccounts, setPiAccounts] = useState<any[]>([]);
+  const [piAnalytics, setPiAnalytics] = useState<any>(null);
+  const [piTopPins, setPiTopPins] = useState<any[]>([]);
+  const [piLoading, setPiLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -114,15 +120,26 @@ export function AnalyticsPage() {
     return () => { active = false; };
   }, [days]);
 
-  const collectNow = async () => {
-    setCollecting(true);
-    try {
-      await api.collectChannelStats();
-      const cs = await api.getChannelStats();
-      setChannelStats(cs);
-    } catch { /* ignore */ }
-    setCollecting(false);
-  };
+  useEffect(() => {
+    if (platform !== 'pinterest') return;
+    (async () => {
+      try {
+        const channels = await api.getChannels();
+        const pa = channels.filter((c) => c.platform === 'pinterest' && c.status === 'active');
+        setPiAccounts(pa);
+        if (pa.length > 0) {
+          setPiLoading(true);
+          const [analytics, topPins] = await Promise.all([
+            api.pinterestAccountAnalytics(pa[0].id),
+            api.pinterestTopPins(pa[0].id, undefined, undefined, 'IMPRESSIONS', 10),
+          ]);
+          setPiAnalytics(analytics);
+          setPiTopPins(topPins?.items ?? []);
+          setPiLoading(false);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [platform]);
 
   const maxTimeline = Math.max(1, ...timeline.map((d) => d.count));
 
@@ -135,16 +152,25 @@ export function AnalyticsPage() {
             <h1 className="font-display text-2xl font-bold text-white">Аналитика и статистика</h1>
             <p className="text-sm text-graphite-400">Публикации, каналы, подписчики</p>
           </div>
-          <div className="flex gap-2">
-            <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="input text-sm w-40">
-              <option value={7}>За 7 дней</option>
-              <option value={14}>За 14 дней</option>
-              <option value={30}>За 30 дней</option>
-              <option value={90}>За 90 дней</option>
-            </select>
-            <button onClick={collectNow} disabled={collecting} className="btn-ghost text-sm">
-              {collecting ? 'Сбор...' : '🔄 Обновить'}
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-xl border border-graphite-700 bg-graphite-900 overflow-hidden">
+              <button onClick={() => setPlatform('telegram')} className={`px-4 py-2 text-sm font-medium transition ${platform === 'telegram' ? 'bg-lime text-graphite-950' : 'text-graphite-400 hover:text-white'}`}>
+                Telegram
+              </button>
+              <button onClick={() => setPlatform('pinterest')} className={`px-4 py-2 text-sm font-medium transition ${platform === 'pinterest' ? 'bg-red-500 text-white' : 'text-graphite-400 hover:text-white'}`}>
+                Pinterest
+              </button>
+            </div>
+            {platform === 'telegram' && (
+              <>
+                <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="input text-sm w-40">
+                  <option value={7}>За 7 дней</option>
+                  <option value={14}>За 14 дней</option>
+                  <option value={30}>За 30 дней</option>
+                  <option value={90}>За 90 дней</option>
+                </select>
+              </>
+            )}
           </div>
         </div>
 
@@ -157,7 +183,7 @@ export function AnalyticsPage() {
               </div>
             ))}
           </div>
-        ) : overview ? (
+        ) : platform === 'telegram' && overview ? (
           <>
             {/* Обзор */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -303,6 +329,67 @@ export function AnalyticsPage() {
               )}
             </div>
           </>
+        ) : platform === 'pinterest' ? (
+          <div className="space-y-6">
+            {piAccounts.length === 0 ? (
+              <div className="card p-12 text-center">
+                <div className="text-5xl mb-4">📌</div>
+                <h2 className="font-display text-xl font-bold text-white mb-2">Pinterest не подключён</h2>
+                <p className="text-sm text-graphite-300 max-w-md mx-auto mb-6">
+                  Подключите Pinterest аккаунт для аналитики пинов и досок.
+                </p>
+                <a href="/app/channels" className="btn-primary inline-block">Подключить Pinterest</a>
+              </div>
+            ) : piLoading ? (
+              <div className="card p-8 text-center text-graphite-400">Загрузка аналитики Pinterest...</div>
+            ) : (
+              <>
+                {/* Pinterest stats */}
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <StatCard icon="👁" label="Показы" value={piAnalytics?.[0]?.metrics?.IMPRESSIONS ?? 0} />
+                  <StatCard icon="💾" label="Сохранения" value={piAnalytics?.[0]?.metrics?.SAVES ?? 0} />
+                  <StatCard icon="🖱" label="Клики" value={piAnalytics?.[0]?.metrics?.PIN_CLICKS ?? 0} />
+                  <StatCard icon="🔗" label="Внешние переходы" value={piAnalytics?.[0]?.metrics?.OUTBOUND_CLICKS ?? 0} />
+                </div>
+
+                {/* Top pins */}
+                {piTopPins.length > 0 && (
+                  <div className="card p-6">
+                    <h2 className="font-display text-lg font-bold text-white mb-4">Топ пинов</h2>
+                    <div className="space-y-3">
+                      {piTopPins.map((pin: any) => (
+                        <div key={pin.pin_id} className="flex items-center gap-4 p-3 rounded-xl bg-graphite-850 border border-graphite-800">
+                          {pin.pin_metrics?.['90d'] && (
+                            <div className="flex gap-4 text-xs">
+                              <span className="text-graphite-400">👁 {(pin.pin_metrics['90d'].IMPRESSIONS ?? 0).toLocaleString()}</span>
+                              <span className="text-graphite-400">💾 {(pin.pin_metrics['90d'].SAVES ?? 0).toLocaleString()}</span>
+                              <span className="text-graphite-400">🖱 {(pin.pin_metrics['90d'].PIN_CLICKS ?? 0).toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pinterest accounts */}
+                <div className="card p-6">
+                  <h2 className="font-display text-lg font-bold text-white mb-4">Аккаунты Pinterest</h2>
+                  <div className="space-y-2">
+                    {piAccounts.map((acc: any) => (
+                      <div key={acc.id} className="flex items-center justify-between p-3 rounded-xl bg-graphite-850 border border-graphite-800">
+                        <div>
+                          <div className="font-semibold text-white">{acc.title}</div>
+                          <div className="text-xs text-graphite-400">@{acc.username}</div>
+                        </div>
+                        <span className="text-xs text-lime">Активен</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         ) : (
           <div className="card p-8 text-center">
             <div className="text-4xl mb-4">📊</div>

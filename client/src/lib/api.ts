@@ -216,4 +216,60 @@ export const api = {
 
   collectMtprotoStats: () =>
     request<{ results?: Array<{ channel: string; username: string; postsFound: number; totalViews: number }>; error?: string }>('/mtproto/collect', { method: 'POST' }),
+
+  // ─── PINTEREST ───
+
+  pinterestAuthUrl: () =>
+    request<{ url: string }>('/pinterest/auth-url'),
+
+  pinterestUser: (accountId: string) =>
+    request<any>(`/pinterest/user?accountId=${accountId}`),
+
+  pinterestBoards: (accountId: string, bookmark?: string) =>
+    request<any>(`/pinterest/boards?accountId=${accountId}${bookmark ? `&bookmark=${bookmark}` : ''}`),
+
+  pinterestCreateBoard: (accountId: string, data: { name: string; description?: string; privacy?: string }) =>
+    request<any>(`/pinterest/boards?accountId=${accountId}`, { method: 'POST', body: JSON.stringify(data) }),
+
+  pinterestDeleteBoard: (accountId: string, boardId: string) =>
+    request<any>(`/pinterest/boards/${boardId}?accountId=${accountId}`, { method: 'DELETE' }),
+
+  pinterestBoardPins: (accountId: string, boardId: string, bookmark?: string) =>
+    request<any>(`/pinterest/boards/${boardId}/pins?accountId=${accountId}${bookmark ? `&bookmark=${bookmark}` : ''}`),
+
+  pinterestBoardSections: (accountId: string, boardId: string) =>
+    request<any>(`/pinterest/boards/${boardId}/sections?accountId=${accountId}`),
+
+  pinterestCreateBoardSection: (accountId: string, boardId: string, name: string) =>
+    request<any>(`/pinterest/boards/${boardId}/sections?accountId=${accountId}`, { method: 'POST', body: JSON.stringify({ name }) }),
+
+  pinterestSelectBoard: (accountId: string, boardId: string) =>
+    request<{ success: boolean }>(`/pinterest/select-board?accountId=${accountId}&boardId=${boardId}`),
+
+  pinterestPins: (accountId: string, bookmark?: string) =>
+    request<any>(`/pinterest/pins?accountId=${accountId}${bookmark ? `&bookmark=${bookmark}` : ''}`),
+
+  pinterestCreatePin: (accountId: string, data: any) =>
+    request<any>(`/pinterest/pins?accountId=${accountId}`, { method: 'POST', body: JSON.stringify(data) }),
+
+  pinterestBulkCreatePins: (accountId: string, data: { board_id: string; pins: any[] }) =>
+    request<any>(`/pinterest/pins/bulk?accountId=${accountId}`, { method: 'POST', body: JSON.stringify(data) }),
+
+  pinterestDeletePin: (accountId: string, pinId: string) =>
+    request<any>(`/pinterest/pins/${pinId}?accountId=${accountId}`, { method: 'DELETE' }),
+
+  pinterestGetPin: (accountId: string, pinId: string) =>
+    request<any>(`/pinterest/pins/${pinId}?accountId=${accountId}`),
+
+  pinterestUpdatePin: (accountId: string, pinId: string, data: any) =>
+    request<any>(`/pinterest/pins/${pinId}?accountId=${accountId}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  pinterestAccountAnalytics: (accountId: string, startDate?: string, endDate?: string) =>
+    request<any>(`/pinterest/analytics/account?accountId=${accountId}${startDate ? `&startDate=${startDate}` : ''}${endDate ? `&endDate=${endDate}` : ''}`),
+
+  pinterestTopPins: (accountId: string, startDate?: string, endDate?: string, sortBy?: string, limit?: number) =>
+    request<any>(`/pinterest/analytics/pins?accountId=${accountId}${startDate ? `&startDate=${startDate}` : ''}${endDate ? `&endDate=${endDate}` : ''}${sortBy ? `&sortBy=${sortBy}` : ''}${limit ? `&limit=${limit}` : ''}`),
+
+  pinterestPinAnalytics: (accountId: string, pinId: string, startDate?: string, endDate?: string) =>
+    request<any>(`/pinterest/analytics/pin/${pinId}?accountId=${accountId}${startDate ? `&startDate=${startDate}` : ''}${endDate ? `&endDate=${endDate}` : ''}`),
 };

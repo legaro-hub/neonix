@@ -10,7 +10,18 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'blob:'],
+        fontSrc: ["'self'"],
+        connectSrc: ["'self'"],
+        frameSrc: ["'none'"],
+        objectSrc: ["'none'"],
+      },
+    },
   }));
 
   app.useGlobalPipes(

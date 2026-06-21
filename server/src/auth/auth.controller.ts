@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, Get, UseGuards, Req, BadRequestException, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Body, Res, Get, UseGuards, Req, BadRequestException, UsePipes, ValidationPipe, Query } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
@@ -74,6 +74,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@Req() req: Request & { user: RequestUser }) {
     return this.auth.getMe(req.user.id);
+  }
+
+  @Get('verify-email')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async verifyEmail(@Query('token') token: string) {
+    if (!token) {
+      throw new BadRequestException('Токен подтверждения отсутствует');
+    }
+    return this.auth.verifyEmail(token);
   }
 
   @Post('forgot-password')
