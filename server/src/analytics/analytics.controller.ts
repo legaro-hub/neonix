@@ -36,4 +36,14 @@ export class AnalyticsController {
     const l = limit ? parseInt(limit, 10) : 10;
     return this.analytics.getRecentPosts(req.user.id, isNaN(l) ? 10 : l);
   }
+
+  @Get('weekly')
+  weekly(@Req() req: Request & { user: RequestUser }) {
+    return this.analytics.getWeeklyComparison(req.user.id);
+  }
+
+  @Get('media')
+  media(@Req() req: Request & { user: RequestUser }) {
+    return this.analytics.getMediaStats(req.user.id);
+  }
 }

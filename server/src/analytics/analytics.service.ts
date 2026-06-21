@@ -137,4 +137,50 @@ export class AnalyticsService {
       };
     });
   }
+
+  async getWeeklyComparison(userId: string) {
+    const now = new Date();
+    const thisWeekStart = new Date(now);
+    thisWeekStart.setDate(now.getDate() - now.getDay());
+    thisWeekStart.setHours(0, 0, 0, 0);
+
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+
+    const [thisWeekPubs, lastWeekPubs] = await Promise.all([
+      this.prisma.postPublication.count({
+        where: { post: { userId }, status: 'published', publishedAt: { gte: thisWeekStart } },
+      }),
+      this.prisma.postPublication.count({
+        where: { post: { userId }, status: 'published', publishedAt: { gte: lastWeekStart, lt: thisWeekStart } },
+      }),
+    ]);
+
+    const diff = lastWeekPubs > 0 ? Math.round(((thisWeekPubs - lastWeekPubs) / lastWeekPubs) * 100) : 0;
+
+    return { thisWeek: thisWeekPubs, lastWeek: lastWeekPubs, diff };
+  }
+
+  async getMediaStats(userId: string) {
+    const posts = await this.prisma.post.findMany({
+      where: { userId },
+      select: {
+        media: { select: { kind: true, sizeBytes: true } },
+      },
+    });
+
+    let totalFiles = 0;
+    let totalSize = 0;
+    const byKind: Record<string, number> = { image: 0, video: 0, gif: 0 };
+
+    for (const post of posts) {
+      for (const m of post.media) {
+        totalFiles++;
+        totalSize += m.sizeBytes || 0;
+        if (m.kind in byKind) byKind[m.kind]++;
+      }
+    }
+
+    return { totalFiles, totalSize, byKind };
+  }
 }

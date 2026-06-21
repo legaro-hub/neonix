@@ -184,6 +184,12 @@ export const api = {
   getAnalyticsPosts: (limit?: number) =>
     request<AnalyticsPost[]>(`/analytics/posts${limit ? `?limit=${limit}` : ''}`),
 
+  getAnalyticsWeekly: () =>
+    request<{ thisWeek: number; lastWeek: number; diff: number }>('/analytics/weekly'),
+
+  getAnalyticsMedia: () =>
+    request<{ totalFiles: number; totalSize: number; byKind: Record<string, number> }>('/analytics/media'),
+
   getChannelStats: () =>
     request<ChannelStats[]>('/channel-stats'),
 

@@ -481,8 +481,8 @@ export function PostEditorPage() {
               </div>
             </div>
 
-            {/* Правая колонка — шаблоны + превью */}
-            <div className="hidden lg:block space-y-4">
+            {/* Правая колонка — шаблоны */}
+            <div className="hidden lg:block">
               <TemplatesPanel onInsert={(text) => {
                 if (editorRef.current) {
                   editorRef.current.focus();
@@ -490,7 +490,6 @@ export function PostEditorPage() {
                   syncBody();
                 }
               }} />
-              <TelegramPreview title={title} body={body} mediaCount={totalCount} />
             </div>
           </div>
 

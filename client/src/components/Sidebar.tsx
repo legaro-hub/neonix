@@ -26,7 +26,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-graphite-800 bg-graphite-900/50 lg:flex lg:flex-col">
+    <aside className="hidden w-64 shrink-0 border-r border-graphite-800 bg-graphite-900/50 lg:flex lg:flex-col lg:sticky lg:top-0 lg:h-screen">
       <div className="flex h-16 items-center gap-2 border-b border-graphite-800 px-5">
         <Link to="/app" className="font-display text-lg font-bold text-graphite-100">
           Neon<span className="text-lime">ix</span>
@@ -34,7 +34,7 @@ export function Sidebar() {
         <span className="chip ml-1 text-[10px]">Beta</span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
         {NAV_ITEMS.map((item) => {
           const active = item.href === '/app'
             ? location.pathname === '/app'
@@ -56,7 +56,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-graphite-800 px-3 py-3 space-y-1">
+      <div className="mt-auto border-t border-graphite-800 px-3 py-3 space-y-1">
         {BOTTOM_ITEMS.map((item) => {
           const active = location.pathname === item.href;
           return (
