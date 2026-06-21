@@ -90,23 +90,17 @@ export function AnalyticsPage() {
   const [channelStats, setChannelStats] = useState<ChannelStats[]>([]);
   const [collecting, setCollecting] = useState(false);
 
-  // Extended stats
-  const [weekly, setWeekly] = useState<{ thisWeek: number; lastWeek: number; diff: number } | null>(null);
-  const [mediaStats, setMediaStats] = useState<{ totalFiles: number; totalSize: number; byKind: Record<string, number> } | null>(null);
-
   useEffect(() => {
     let active = true;
     (async () => {
       setLoading(true);
       try {
-        const [ov, tl, ch, ps, cs, wk, ms] = await Promise.all([
+        const [ov, tl, ch, ps, cs] = await Promise.all([
           api.getAnalyticsOverview(),
           api.getAnalyticsTimeline(days),
           api.getAnalyticsChannels(),
           api.getAnalyticsPosts(20),
           api.getChannelStats(),
-          api.getAnalyticsWeekly(),
-          api.getAnalyticsMedia(),
         ]);
         if (!active) return;
         setOverview(ov);
@@ -114,8 +108,6 @@ export function AnalyticsPage() {
         setAnalyticsChannels(ch);
         setPosts(ps);
         setChannelStats(cs);
-        setWeekly(wk);
-        setMediaStats(ms);
       } catch { /* ignore */ }
       if (active) setLoading(false);
     })();

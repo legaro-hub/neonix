@@ -92,33 +92,6 @@ function EmojiPicker({ onEmoji }: { onEmoji: (emoji: string) => void }) {
   );
 }
 
-function TelegramPreview({ title, body, mediaCount }: { title: string; body: string; mediaCount: number }) {
-  const text = body || 'Начните писать...';
-  return (
-    <div className="card p-4">
-      <h3 className="font-display text-sm font-bold text-white mb-3">👁 Превью Telegram</h3>
-      <div className="rounded-xl overflow-hidden" style={{ background: '#1a1d23' }}>
-        <div className="p-3">
-          {title && <div className="font-bold text-sm text-white mb-1">{title}</div>}
-          <div className="text-sm text-gray-200 whitespace-pre-wrap break-words" style={{ fontSize: '13px', lineHeight: '1.4' }}>
-            {text.slice(0, 500)}{text.length > 500 ? '...' : ''}
-          </div>
-          {mediaCount > 0 && (
-            <div className="mt-2 flex items-center gap-1 text-[10px] text-gray-400">
-              <span>📎 {mediaCount} {mediaCount === 1 ? 'файл' : 'файлов'}</span>
-            </div>
-          )}
-          <div className="mt-2 flex items-center gap-2 text-[10px] text-gray-500">
-            <span>9:41</span>
-            <span>👁 0</span>
-          </div>
-        </div>
-      </div>
-      <p className="mt-2 text-[10px] text-graphite-500 text-center">Так выглядит в Telegram</p>
-    </div>
-  );
-}
-
 function TemplatesPanel({ onInsert }: { onInsert: (text: string) => void }) {
   const [templates, setTemplates] = useState(() => {
     const saved = localStorage.getItem('neonix_templates');
