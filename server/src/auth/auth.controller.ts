@@ -78,10 +78,25 @@ export class AuthController {
 
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 300000 } })
-  async forgotPassword(@Req() req: any) {
-    const email = req.body?.email;
-    if (!email) throw new BadRequestException('Email is required');
-    return this.auth.forgotPassword(email);
+  async forgotPassword(@Req() req: any, @Res() res: any) {
+    try {
+      let email = '';
+      if (req.body && typeof req.body.email === 'string') {
+        email = req.body.email;
+      } else if (req.rawBody) {
+        try {
+          const parsed = JSON.parse(req.rawBody.toString());
+          email = parsed.email;
+        } catch {}
+      }
+      if (!email) {
+        return res.status(400).json({ statusCode: 400, message: 'Email is required' });
+      }
+      await this.auth.forgotPassword(email);
+      return res.json({ success: true });
+    } catch (err) {
+      return res.status(500).json({ statusCode: 500, message: 'Internal server error' });
+    }
   }
 
   @Post('reset-password')
