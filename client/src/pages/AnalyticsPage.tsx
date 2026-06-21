@@ -88,14 +88,12 @@ export function AnalyticsPage() {
 
   // Channel stats (Bot API)
   const [channelStats, setChannelStats] = useState<ChannelStats[]>([]);
-  const [statsLoading, setStatsLoading] = useState(true);
   const [collecting, setCollecting] = useState(false);
 
   useEffect(() => {
     let active = true;
     (async () => {
       setLoading(true);
-      setStatsLoading(true);
       try {
         const [ov, tl, ch, ps, cs] = await Promise.all([
           api.getAnalyticsOverview(),
@@ -111,7 +109,7 @@ export function AnalyticsPage() {
         setPosts(ps);
         setChannelStats(cs);
       } catch { /* ignore */ }
-      if (active) { setLoading(false); setStatsLoading(false); }
+      if (active) setLoading(false);
     })();
     return () => { active = false; };
   }, [days]);
