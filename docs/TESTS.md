@@ -17,7 +17,7 @@
 | Users / UsersService | 20 | ✅ |
 | **Итого** | **79** | |
 
-Не покрыты: `PublicationWorkerService`, `TelegramController`, `TelegramPollingService`, `AuthService` (register/login/refresh — сложные зависимости от JWT/bcrypt/Email).
+Не покрыты: `PublicationWorkerService`, `TelegramController`, `TelegramPollingService`, `AuthService` (register/login/refresh — сложные зависимости от JWT/bcrypt).
 
 ---
 
