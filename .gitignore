@@ -20,3 +20,4 @@ mailserver.env
 server/uploads/
 server/sessions/
 server/q.sql
+session-*.md
