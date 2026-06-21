@@ -34,7 +34,9 @@ export class EmailService implements OnModuleInit {
         host,
         port,
         secure: port === 465,
-        tls: { rejectUnauthorized: !isDev },
+        tls: { rejectUnauthorized: false },
+        requireTLS: false,
+        ignoreTLS: true,
       };
       if (user && pass) {
         transportOptions.auth = { user, pass };
