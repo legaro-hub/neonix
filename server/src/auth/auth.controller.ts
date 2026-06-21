@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, Get, UseGuards, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Res, Get, UseGuards, Req, BadRequestException, UsePipes, ValidationPipe } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
@@ -78,24 +78,9 @@ export class AuthController {
 
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 300000 } })
-  async forgotPassword(@Req() req: any, @Res() res: any) {
-    try {
-      let email = '';
-      if (req.body) {
-        if (typeof req.body === 'string') {
-          try { email = JSON.parse(req.body).email; } catch {}
-        } else {
-          email = req.body.email;
-        }
-      }
-      if (!email) {
-        return res.status(400).json({ statusCode: 400, message: 'Email is required' });
-      }
-      await this.auth.forgotPassword(email);
-      return res.json({ success: true });
-    } catch (err) {
-      return res.status(500).json({ statusCode: 500, message: 'Internal server error' });
-    }
+  @UsePipes(new ValidationPipe({ transform: false, whitelist: false }))
+  async forgotPassword(@Body() body: any) {
+    return this.auth.forgotPassword(body?.email);
   }
 
   @Post('reset-password')
