@@ -79,7 +79,7 @@ async function tryRefresh(): Promise<boolean> {
 }
 
 export const api = {
-  register: (body: { email: string; password: string; name?: string; captchaId: string; captchaAnswer: number }) =>
+  register: (body: { email: string; password: string; name?: string; captchaId: string; captchaAnswer: number; promoCode?: string }) =>
     request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
 
   login: (body: { email: string; password: string }) =>

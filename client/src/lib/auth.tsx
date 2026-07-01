@@ -9,7 +9,7 @@ interface AuthState {
 
 interface AuthContextValue extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name?: string, captchaId?: string, captchaAnswer?: number) => Promise<void>;
+  register: (email: string, password: string, name?: string, captchaId?: string, captchaAnswer?: number, promoCode?: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -47,8 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(
-    async (email: string, password: string, name?: string, captchaId?: string, captchaAnswer?: number) => {
-      const data = await api.register({ email, password, name, captchaId: captchaId!, captchaAnswer: captchaAnswer! });
+    async (email: string, password: string, name?: string, captchaId?: string, captchaAnswer?: number, promoCode?: string) => {
+      const data = await api.register({ email, password, name, captchaId: captchaId!, captchaAnswer: captchaAnswer!, promoCode });
       setAccessToken(data.accessToken);
       setState({ user: data.user, loading: false });
     },

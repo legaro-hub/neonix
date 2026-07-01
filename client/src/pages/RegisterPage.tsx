@@ -11,6 +11,7 @@ export function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [promoCode, setPromoCode] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,7 +52,7 @@ export function RegisterPage() {
     }
     setLoading(true);
     try {
-      await register(email, password, name || undefined, captcha.id, Number(captchaAnswer));
+      await register(email, password, name || undefined, captcha.id, Number(captchaAnswer), promoCode || undefined);
       navigate('/app', { replace: true });
     } catch (err) {
       if (err instanceof HttpError && err.status === 400) {
@@ -187,6 +188,17 @@ export function RegisterPage() {
               Загрузить капчу
             </button>
           )}
+        </div>
+        <div>
+          <label className="label" htmlFor="promo">Промокод (необязательно)</label>
+          <input
+            id="promo"
+            type="text"
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value)}
+            className="input"
+            placeholder="Введите промокод"
+          />
         </div>
         <button type="submit" disabled={loading || captchaLoading} className="btn-primary w-full">
           {loading ? 'Создаём...' : 'Создать аккаунт'}
