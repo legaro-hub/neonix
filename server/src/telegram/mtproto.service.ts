@@ -30,7 +30,7 @@ export class MtprotoService implements OnModuleDestroy {
   ) {}
 
   private createClient(session?: StringSession): TelegramClient | null {
-    const apiId = this.config.get<number>('TG_API_ID');
+    const apiId = Number(this.config.get<string>('TG_API_ID'));
     const apiHash = this.config.get<string>('TG_API_HASH');
     if (!apiId || !apiHash) return null;
 

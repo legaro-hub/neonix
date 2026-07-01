@@ -97,7 +97,7 @@ export function CalendarPage() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-6 lg:p-10">
+      <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-2xl font-bold text-white">Календарь</h1>
           <div className="flex items-center gap-2">

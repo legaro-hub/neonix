@@ -5,6 +5,45 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getPublishedPostMetrics(userId: string) {
+    const publications = await this.prisma.postPublication.findMany({
+      where: {
+        post: { userId },
+        status: 'published',
+        externalId: { not: null },
+      },
+      include: {
+        post: { select: { id: true, title: true, body: true, createdAt: true, scheduledAt: true } },
+        socialAccount: { select: { id: true, title: true, platform: true, username: true, metadata: true } },
+      },
+      orderBy: { publishedAt: 'desc' },
+    });
+
+    const byPlatform: Record<string, number> = {};
+    for (const pub of publications) {
+      const p = pub.socialAccount.platform;
+      byPlatform[p] = (byPlatform[p] || 0) + 1;
+    }
+
+    return {
+      total: publications.length,
+      byPlatform,
+      posts: publications.map((pub) => ({
+        id: pub.post.id,
+        title: pub.post.title || 'Без заголовка',
+        body: pub.post.body.slice(0, 120),
+        createdAt: pub.post.createdAt,
+        scheduledAt: pub.post.scheduledAt,
+        publishedAt: pub.publishedAt,
+        externalId: pub.externalId,
+        externalUrl: pub.externalUrl,
+        channelTitle: pub.socialAccount.title,
+        platform: pub.socialAccount.platform,
+        accountId: pub.socialAccount.id,
+      })),
+    };
+  }
+
   async getOverview(userId: string) {
     const [totalPosts, publications, channels] = await Promise.all([
       this.prisma.post.count({ where: { userId } }),

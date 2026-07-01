@@ -14,6 +14,11 @@ export class RegisterDto {
   @MaxLength(80)
   name?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  promoCode?: string;
+
   @IsString()
   captchaId: string;
 

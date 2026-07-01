@@ -8,6 +8,11 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [titleClicks, setTitleClicks] = useState(0);
+  const [titleTimer, setTitleTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [showPostpinConfig, setShowPostpinConfig] = useState(false);
+  const [postpinEmail, setPostpinEmail] = useState('');
+  const [postpinSaving, setPostpinSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -42,11 +47,32 @@ export function SettingsPage() {
     setSettings({ ...settings, [key]: !settings[key] });
   };
 
+  const handleTitleClick = () => {
+    if (titleTimer) clearTimeout(titleTimer);
+    const next = titleClicks + 1;
+    setTitleClicks(next);
+    setTitleTimer(setTimeout(() => { setTitleClicks(0); }, 2000));
+    if (next >= 5) {
+      setTitleClicks(0);
+      setShowPostpinConfig(true);
+      api.getPostpinEmail().then((d) => setPostpinEmail(d.email)).catch(() => {});
+    }
+  };
+
+  const handleSavePostpin = async () => {
+    setPostpinSaving(true);
+    try {
+      await api.setPostpinEmail(postpinEmail);
+      setShowPostpinConfig(false);
+    } catch {}
+    setPostpinSaving(false);
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen">
         <Sidebar />
-        <main className="flex-1 p-6 lg:p-10">
+        <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
           <div className="h-8 w-48 animate-pulse rounded bg-graphite-800" />
         </main>
       </div>
@@ -56,8 +82,8 @@ export function SettingsPage() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-6 lg:p-10">
-        <h1 className="font-display text-2xl font-bold text-white mb-6">Настройки</h1>
+      <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
+        <h1 onClick={handleTitleClick} className="font-display text-2xl font-bold text-white mb-6 cursor-default select-none">Настройки</h1>
 
         <div className="max-w-2xl space-y-6">
           <form onSubmit={onSave} className="card p-6 space-y-6">
@@ -174,6 +200,23 @@ export function SettingsPage() {
             </div>
           </form>
         </div>
+
+        {showPostpinConfig && (
+          <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm" onClick={() => setShowPostpinConfig(false)}>
+            <div className="card w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-display text-lg font-bold text-white mb-4">PostPin Email</h3>
+              <div>
+                <label className="label">Email</label>
+                <input className="input text-sm" value={postpinEmail} onChange={(e) => setPostpinEmail(e.target.value)} placeholder="your@email.com" />
+                <p className="text-[10px] text-graphite-500 mt-1">Email от аккаунта PostPin</p>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button onClick={handleSavePostpin} disabled={postpinSaving} className="btn-primary text-sm flex-1">{postpinSaving ? 'Сохранение...' : 'Сохранить'}</button>
+                <button onClick={() => setShowPostpinConfig(false)} className="btn-ghost text-sm">Закрыть</button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

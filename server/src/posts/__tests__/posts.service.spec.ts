@@ -12,6 +12,7 @@ const mockPrisma = {
     findMany: jest.fn(),
   },
   postPublication: {
+    findMany: jest.fn(),
     deleteMany: jest.fn(),
     createMany: jest.fn(),
   },
@@ -194,6 +195,7 @@ describe('PostsService', () => {
     it('should update socialAccountIds with transaction', async () => {
       mockPrisma.post.findFirst.mockResolvedValue({ id: postId, userId });
       mockPrisma.socialAccount.findMany.mockResolvedValue([{ id: 'sa-1' }]);
+      mockPrisma.postPublication.findMany.mockResolvedValue([]);
       mockPrisma.postPublication.deleteMany.mockResolvedValue({ count: 1 });
       mockPrisma.postPublication.createMany.mockResolvedValue({ count: 1 });
       mockPrisma.post.update.mockResolvedValue({ id: postId });
@@ -203,7 +205,9 @@ describe('PostsService', () => {
         scheduledAt: '2026-06-20T10:00:00Z',
       });
 
-      expect(mockPrisma.$transaction).toHaveBeenCalled();
+      expect(mockPrisma.postPublication.deleteMany).toHaveBeenCalled();
+      expect(mockPrisma.postPublication.createMany).toHaveBeenCalled();
+      expect(mockPrisma.post.update).toHaveBeenCalled();
     });
 
     it('should throw if updated channels not owned', async () => {

@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { PromoService } from '../common/promo.service';
 import { UpdateChannelDto } from './dto/update-channel.dto';
 
 const LINK_CODES = new Map<
@@ -28,7 +29,10 @@ export class SocialAccountsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SocialAccountsService.name);
   private cleanupTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly promoService: PromoService,
+  ) {}
 
   onModuleInit() {
     this.cleanupTimer = setInterval(() => this.cleanup(), CLEANUP_INTERVAL_MS);
@@ -169,14 +173,14 @@ export class SocialAccountsService implements OnModuleInit, OnModuleDestroy {
     }
 
     const existingCount = await this.prisma.socialAccount.count({
-      where: { userId, status: 'active' },
+      where: { userId, platform, status: 'active' },
     });
 
-    const unlimitedEmails = ['legaro.hub@gmail.com'];
-    const hasUnlimited = unlimitedEmails.includes(user.email);
-    const maxChannels = hasUnlimited || user.role === 'admin' || user.role === 'superadmin' ? Infinity : 5;
-    if (existingCount >= maxChannels) {
-      throw new BadRequestException('Достигнут лимит каналов для вашего тарифа');
+    const limitCheck = await this.promoService.checkAccountLimit(userId, platform);
+    if (!limitCheck.allowed) {
+      throw new BadRequestException(
+        `Достигнут лимит ${platform} аккаунтов (${limitCheck.max}) для вашего тарифа. Обновите план для увеличения лимита.`,
+      );
     }
 
     return this.prisma.socialAccount.create({

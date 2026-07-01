@@ -272,4 +272,49 @@ export const api = {
 
   pinterestPinAnalytics: (accountId: string, pinId: string, startDate?: string, endDate?: string) =>
     request<any>(`/pinterest/analytics/pin/${pinId}?accountId=${accountId}${startDate ? `&startDate=${startDate}` : ''}${endDate ? `&endDate=${endDate}` : ''}`),
+
+  connectPostpin: (cookies: any[], proxy: string, username: string) =>
+    request<any>('/pinterest/connect-cookies', { method: 'POST', body: JSON.stringify({ cookies, proxy, username }) }),
+
+  getPostpinEmail: () =>
+    request<{ email: string }>('/pinterest/postpin-email'),
+
+  setPostpinEmail: (email: string) =>
+    request<{ success: boolean }>('/pinterest/postpin-email', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  // ─── YOUTUBE ───
+
+  youtubeAuthUrl: () =>
+    request<{ url: string }>('/youtube/auth-url'),
+
+  youtubeChannels: (accountId: string) =>
+    request<any>(`/youtube/channels?accountId=${accountId}`),
+
+  youtubeVideos: (accountId: string, pageToken?: string) =>
+    request<any>(`/youtube/videos?accountId=${accountId}${pageToken ? `&pageToken=${pageToken}` : ''}`),
+
+  youtubeStats: (accountId: string) =>
+    request<any>(`/youtube/stats?accountId=${accountId}`),
+
+  // ─── INSTAGRAM ───
+
+  instagramAuthUrl: () =>
+    request<{ url: string }>('/instagram/auth-url'),
+
+  instagramProfile: (accountId: string) =>
+    request<any>(`/instagram/profile?accountId=${accountId}`),
+
+  instagramMedia: (accountId: string, after?: string) =>
+    request<any>(`/instagram/media?accountId=${accountId}${after ? `&after=${after}` : ''}`),
+
+  instagramInsights: (accountId: string) =>
+    request<any>(`/instagram/insights?accountId=${accountId}`),
+
+  // ─── ANALYTICS ───
+
+  deepAnalytics: (startDate?: string, endDate?: string) =>
+    request<any>(`/analytics/deep${startDate ? `?startDate=${startDate}` : ''}${endDate ? `&endDate=${endDate}` : ''}`),
+
+  channelAnalytics: (channelId: string, days?: string) =>
+    request<any>(`/channel-analytics/${channelId}${days ? `?days=${days}` : ''}`),
 };

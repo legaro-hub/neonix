@@ -353,4 +353,49 @@ export class PinterestAuthService implements OnModuleInit {
   async getUserAccount(accessToken: string) {
     return this.api('/user_account', accessToken);
   }
+
+  async getBoardAnalytics(accessToken: string, boardId: string, startDate: string, endDate: string) {
+    const params = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+      metric_types: 'IMPRESSIONS,SAVES,PIN_CLICKS,OUTBOUND_CLICKS,ENGAGEMENTS',
+    });
+    return this.api(`/boards/${boardId}/analytics?${params}`, accessToken);
+  }
+
+  async getAnalyticsByFormat(accessToken: string, startDate: string, endDate: string) {
+    const params = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+      from_claimed_content: 'true',
+      pin_format: 'all',
+      app_types: 'all',
+      content_type: 'all',
+      source: 'all',
+      metric_types: 'IMPRESSIONS,SAVES,PIN_CLICKS,ENGAGEMENTS',
+      split_field: 'BY_PIN_FORMAT',
+    });
+    return this.api(`/user_account/analytics?${params}`, accessToken);
+  }
+
+  async getAnalyticsByDevice(accessToken: string, startDate: string, endDate: string) {
+    const params = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+      from_claimed_content: 'true',
+      pin_format: 'all',
+      app_types: 'all',
+      content_type: 'all',
+      source: 'all',
+      metric_types: 'IMPRESSIONS,PIN_CLICKS',
+      split_field: 'BY_APP_TYPES',
+    });
+    return this.api(`/user_account/analytics?${params}`, accessToken);
+  }
+
+  async listAllPins(accessToken: string, bookmark?: string) {
+    const params = new URLSearchParams({ page_size: '25', pin_metrics: 'true' });
+    if (bookmark) params.set('bookmark', bookmark);
+    return this.api(`/pins?${params}`, accessToken);
+  }
 }

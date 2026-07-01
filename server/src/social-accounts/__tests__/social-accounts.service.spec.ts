@@ -35,7 +35,9 @@ beforeEach(() => {
       updateMany: jest.fn(),
     },
   });
-  service = new mod.SocialAccountsService(mockPrisma as any);
+  service = new mod.SocialAccountsService(mockPrisma as any, {
+    checkAccountLimit: jest.fn().mockResolvedValue({ allowed: true, current: 0, max: 5 }),
+  } as any);
   process.env.TG_BOT_NAME = 'test_bot';
 });
 
@@ -165,16 +167,17 @@ describe('SocialAccountsService', () => {
     });
 
     it('should enforce channel limit for regular users', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ id: userId, role: 'user' });
+      mockPrisma.user.findUnique.mockResolvedValue({ id: userId, role: 'user', email: 'test@test.com' });
       mockPrisma.socialAccount.findFirst.mockResolvedValue(null);
-      mockPrisma.socialAccount.count.mockResolvedValue(1);
+      mockPrisma.socialAccount.count.mockResolvedValue(5);
+      (service as any).promoService = { checkAccountLimit: jest.fn().mockResolvedValue({ allowed: false, current: 3, max: 3 }) };
 
       await expect(
         service.addChannel(userId, {
           externalId: '999',
           title: 'Extra Channel',
         }),
-      ).rejects.toThrow('Достигнут лимит каналов');
+      ).rejects.toThrow('Достигнут лимит');
     });
 
     it('should not enforce limit for admins', async () => {

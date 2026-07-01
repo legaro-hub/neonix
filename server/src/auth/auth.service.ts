@@ -15,6 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { AuthResult, JwtPayload } from './interfaces/auth.types';
 import { parseTtlSeconds } from '../common/parse-ttl';
 import { EmailService } from '../email/email.service';
+import { PromoService } from '../common/promo.service';
 
 @Injectable()
 export class AuthService {
@@ -25,6 +26,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly email: EmailService,
+    private readonly promoService: PromoService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResult> {
@@ -45,6 +47,15 @@ export class AuthService {
     });
 
     this.logger.log(`Registered user ${user.email}`);
+
+    if (dto.promoCode) {
+      try {
+        await this.promoService.applyPromoCode(user.id, dto.promoCode);
+        this.logger.log(`Promo code ${dto.promoCode} applied for new user ${user.email}`);
+      } catch (err: any) {
+        this.logger.warn(`Failed to apply promo code ${dto.promoCode}: ${err.message}`);
+      }
+    }
 
     const verifyToken = randomBytes(32).toString('hex');
     const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);

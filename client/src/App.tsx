@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { CookieBanner } from './components/CookieBanner';
+import { MobileNav } from './components/MobileNav';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -15,9 +16,11 @@ import { CalendarPage } from './pages/CalendarPage';
 import { PostEditorPage } from './pages/PostEditorPage';
 import { BulkUploadPage } from './pages/BulkUploadPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
+import { ChannelAnalyticsPage } from './pages/ChannelAnalyticsPage';
 import { ChannelStatsPage } from './pages/ChannelStatsPage';
 import { MtprotoPage } from './pages/MtprotoPage';
 import { PinterestBoardsPage } from './pages/PinterestBoardsPage';
+import { PinterestEditorPage } from './pages/PinterestEditorPage';
 import { HelpPage } from './pages/HelpPage';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
@@ -46,18 +49,21 @@ export default function App() {
       <Route path="/app/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/app/channels" element={<ProtectedRoute><ChannelsPage /></ProtectedRoute>} />
       <Route path="/app/channels/pinterest" element={<ProtectedRoute><PinterestBoardsPage /></ProtectedRoute>} />
+      <Route path="/app/pinterest" element={<ProtectedRoute><PinterestEditorPage /></ProtectedRoute>} />
       <Route path="/app/posts" element={<ProtectedRoute><PostsPage /></ProtectedRoute>} />
       <Route path="/app/posts/new" element={<ProtectedRoute><PostEditorPage /></ProtectedRoute>} />
       <Route path="/app/posts/:id" element={<ProtectedRoute><PostEditorPage /></ProtectedRoute>} />
       <Route path="/app/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
       <Route path="/app/bulk-upload" element={<ProtectedRoute><BulkUploadPage /></ProtectedRoute>} />
       <Route path="/app/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+      <Route path="/app/analytics/:id" element={<ProtectedRoute><ChannelAnalyticsPage /></ProtectedRoute>} />
       <Route path="/app/analytics/channels" element={<ProtectedRoute><ChannelStatsPage /></ProtectedRoute>} />
       <Route path="/app/analytics/mtproto" element={<ProtectedRoute><MtprotoPage /></ProtectedRoute>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     <CookieBanner />
+    <MobileNav />
     </>
   );
 }

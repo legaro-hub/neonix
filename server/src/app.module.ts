@@ -12,7 +12,10 @@ import { PostsModule } from './posts/posts.module';
 import { MediaModule } from './media/media.module';
 import { EmailModule } from './email/email.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ChannelAnalyticsModule } from './analytics/channel-analytics.module';
 import { PinterestModule } from './pinterest/pinterest.module';
+import { YouTubeModule } from './youtube/youtube.module';
+import { InstagramModule } from './instagram/instagram.module';
 
 @Module({
   imports: [
@@ -39,7 +42,10 @@ import { PinterestModule } from './pinterest/pinterest.module';
     MediaModule,
     EmailModule,
     AnalyticsModule,
+    ChannelAnalyticsModule,
     PinterestModule,
+    YouTubeModule,
+    InstagramModule,
   ],
   providers: [
     {

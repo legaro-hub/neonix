@@ -21,3 +21,9 @@ server/uploads/
 server/sessions/
 server/q.sql
 session-*.md
+.hitrost1/
+dkim/
+hitrost1/
+smm_deck/
+.postpin-config.json
+server/deploy.ps1

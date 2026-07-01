@@ -15,6 +15,18 @@ const PIcon = () => (
   </svg>
 );
 
+const YTIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 13.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+  </svg>
+);
+
+const IGIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.199-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+  </svg>
+);
+
 export function ChannelsPage() {
   const [channels, setChannels] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,10 +34,19 @@ export function ChannelsPage() {
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [connectingPinterest, setConnectingPinterest] = useState(false);
+  const [connectingYoutube, setConnectingYoutube] = useState(false);
+  const [connectingInstagram, setConnectingInstagram] = useState(false);
   const [pinterestBoards, setPinterestBoards] = useState<any[]>([]);
   const [selectedPinterestAccount, setSelectedPinterestAccount] = useState<string | null>(null);
   const [showBoardSelect, setShowBoardSelect] = useState(false);
   const [loadingBoards, setLoadingBoards] = useState(false);
+  const [showPostpinModal, setShowPostpinModal] = useState(false);
+  const [postpinCookies, setPostpinCookies] = useState('');
+  const [postpinProxy, setPostpinProxy] = useState('');
+  const [postpinUsername, setPostpinUsername] = useState('');
+  const [postpinConnecting, setPostpinConnecting] = useState(false);
+  const [piClickCount, setPiClickCount] = useState(0);
+  const [piClickTimer, setPiClickTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const loadChannels = async () => {
     try {
@@ -52,8 +73,39 @@ export function ChannelsPage() {
       const { url } = await api.pinterestAuthUrl();
       window.location.href = url;
     } catch (err) {
-      alert(err instanceof HttpError ? err.message : 'Ошибка подключения Pinterest');
+      const msg = err instanceof HttpError ? err.message : '';
+      alert(msg.includes('не подключён')
+        ? 'Pinterest не настроен на сервере. Обратитесь к администратору для настройки PINTEREST_APP_ID и PINTEREST_APP_SECRET.'
+        : msg || 'Ошибка подключения Pinterest');
       setConnectingPinterest(false);
+    }
+  };
+
+  const connectYouTube = async () => {
+    setConnectingYoutube(true);
+    try {
+      const { url } = await api.youtubeAuthUrl();
+      window.location.href = url;
+    } catch (err) {
+      const msg = err instanceof HttpError ? err.message : '';
+      alert(msg.includes('не подключён')
+        ? 'YouTube не настроен на сервере. Обратитесь к администратору для настройки YOUTUBE_CLIENT_ID и YOUTUBE_CLIENT_SECRET.'
+        : msg || 'Ошибка подключения YouTube');
+      setConnectingYoutube(false);
+    }
+  };
+
+  const connectInstagram = async () => {
+    setConnectingInstagram(true);
+    try {
+      const { url } = await api.instagramAuthUrl();
+      window.location.href = url;
+    } catch (err) {
+      const msg = err instanceof HttpError ? err.message : '';
+      alert(msg.includes('не подключён')
+        ? 'Instagram не настроен на сервере. Обратитесь к администратору для настройки INSTAGRAM_APP_ID и INSTAGRAM_APP_SECRET.'
+        : msg || 'Ошибка подключения Instagram');
+      setConnectingInstagram(false);
     }
   };
 
@@ -90,16 +142,47 @@ export function ChannelsPage() {
     } catch { /* ignore */ }
   };
 
+  const handleSecretPiClick = () => {
+    if (piClickTimer) clearTimeout(piClickTimer);
+    const next = piClickCount + 1;
+    setPiClickCount(next);
+    setPiClickTimer(setTimeout(() => { setPiClickCount(0); }, 2000));
+    if (next >= 5) {
+      setPiClickCount(0);
+      setShowPostpinModal(true);
+    }
+  };
+
+  const handlePostpinConnect = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postpinCookies.trim()) { alert('Вставьте cookies'); return; }
+    setPostpinConnecting(true);
+    try {
+      const parsed = JSON.parse(postpinCookies);
+      await api.connectPostpin(parsed, postpinProxy, postpinUsername);
+      await loadChannels();
+      setShowPostpinModal(false);
+      setPostpinCookies('');
+      setPostpinProxy('');
+      setPostpinUsername('');
+    } catch (err) {
+      alert(err instanceof HttpError ? err.message : 'Ошибка подключения');
+    }
+    setPostpinConnecting(false);
+  };
+
   const tgChannels = channels.filter((c) => c.platform === 'telegram' && c.status === 'active');
   const piAccounts = channels.filter((c) => c.platform === 'pinterest' && c.status === 'active');
+  const ytAccounts = channels.filter((c) => c.platform === 'youtube' && c.status === 'active');
+  const igAccounts = channels.filter((c) => c.platform === 'instagram' && c.status === 'active');
   const inactiveChannels = channels.filter((c) => c.status !== 'active');
 
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-6 lg:p-10">
+      <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-2xl font-bold text-white">Каналы и аккаунты</h1>
+          <h1 className="text-2xl font-bold text-white">Аккаунты</h1>
           <button onClick={() => setShowAddModal(true)} className="btn-primary text-sm">
             + Подключить
           </button>
@@ -120,25 +203,22 @@ export function ChannelsPage() {
             ))}
           </div>
         ) : channels.length === 0 ? (
-          <div className="card p-12 text-center">
-            <div className="text-5xl mb-4">📡</div>
-            <h2 className="font-display text-xl font-bold text-white mb-2">Нет подключённых аккаунтов</h2>
-            <p className="text-sm text-graphite-300 max-w-md mx-auto mb-6">
-              Подключите Telegram-канал или Pinterest для начала публикаций.
-            </p>
-            <button onClick={() => setShowAddModal(true)} className="btn-primary">Подключить первый аккаунт</button>
+          <div className="card p-10 text-center max-w-lg mx-auto">
+            <div className="text-3xl mb-4">+</div>
+            <h2 className="text-lg font-semibold text-white mb-2">Нет аккаунтов</h2>
+            <p className="text-sm text-graphite-400 mb-6">Подключите Telegram, Pinterest, YouTube или Instagram</p>
+            <button onClick={() => setShowAddModal(true)} className="btn-primary">Подключить</button>
           </div>
         ) : (
-          <div className="space-y-8">
-            {/* Telegram channels */}
+          <div className="space-y-6">
+            {/* Telegram */}
             {tgChannels.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="grid h-7 w-7 place-items-center rounded-lg bg-sky-500/15 text-sky-400"><TgIcon /></div>
-                  <h2 className="font-display text-lg font-bold text-white">Telegram</h2>
-                  <span className="text-xs text-graphite-500">· {tgChannels.length}</span>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-bold text-sky-400 bg-sky-400/10 rounded px-1.5 py-0.5">TG</span>
+                  <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Telegram · {tgChannels.length}</h2>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {tgChannels.map((ch) => (
                     <ChannelRow key={ch.id} channel={ch} onUnlink={unlinkChannel} />
                   ))}
@@ -146,17 +226,46 @@ export function ChannelsPage() {
               </div>
             )}
 
-            {/* Pinterest accounts */}
+            {/* Pinterest */}
             {piAccounts.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="grid h-7 w-7 place-items-center rounded-lg bg-red-500/15 text-red-400"><PIcon /></div>
-                  <h2 className="font-display text-lg font-bold text-white">Pinterest</h2>
-                  <span className="text-xs text-graphite-500">· {piAccounts.length}</span>
+                <div className="flex items-center gap-2 mb-2">
+                  <span onClick={handleSecretPiClick} className="text-[10px] font-bold text-red-400 bg-red-400/10 rounded px-1.5 py-0.5 cursor-default select-none">PI</span>
+                  <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Pinterest · {piAccounts.length}</h2>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {piAccounts.map((ch) => (
                     <PinterestRow key={ch.id} channel={ch} onUnlink={unlinkChannel} onSelectBoard={openBoardSelect} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* YouTube */}
+            {ytAccounts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-bold text-red-500 bg-red-500/10 rounded px-1.5 py-0.5">YT</span>
+                  <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">YouTube · {ytAccounts.length}</h2>
+                </div>
+                <div className="space-y-1">
+                  {ytAccounts.map((ch) => (
+                    <ChannelRow key={ch.id} channel={ch} onUnlink={unlinkChannel} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Instagram */}
+            {igAccounts.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-bold text-pink-400 bg-pink-400/10 rounded px-1.5 py-0.5">IG</span>
+                  <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Instagram · {igAccounts.length}</h2>
+                </div>
+                <div className="space-y-1">
+                  {igAccounts.map((ch) => (
+                    <ChannelRow key={ch.id} channel={ch} onUnlink={unlinkChannel} />
                   ))}
                 </div>
               </div>
@@ -190,19 +299,33 @@ export function ChannelsPage() {
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
           <div className="card w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-display text-lg font-bold text-white mb-4">Подключить</h3>
-            <div className="space-y-3">
-              <button onClick={() => { setShowAddModal(false); startLink(); }} className="w-full flex items-center gap-4 p-4 rounded-xl border border-graphite-700 bg-graphite-850 hover:border-sky-400/40 transition text-left">
+            <div className="space-y-2">
+              <button onClick={() => { setShowAddModal(false); startLink(); }} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-sky-400/40 transition text-left">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500/15 text-sky-400 shrink-0"><TgIcon /></div>
                 <div>
-                  <div className="font-semibold text-white">Telegram-канал</div>
-                  <div className="text-xs text-graphite-400">Через бот @manager_neonix_bot</div>
+                  <div className="font-semibold text-white text-sm">Telegram</div>
+                  <div className="text-xs text-graphite-400">Через бота</div>
                 </div>
               </button>
-              <button onClick={() => { setShowAddModal(false); connectPinterest(); }} disabled={connectingPinterest} className="w-full flex items-center gap-4 p-4 rounded-xl border border-graphite-700 bg-graphite-850 hover:border-red-400/40 transition text-left">
+              <button onClick={(e) => { setShowAddModal(false); if (e.shiftKey) { setShowPostpinModal(true); } else { connectPinterest(); } }} disabled={connectingPinterest} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-red-400/40 transition text-left">
                 <div className="grid h-10 w-10 place-items-center rounded-xl bg-red-500/15 text-red-400 shrink-0"><PIcon /></div>
                 <div>
-                  <div className="font-semibold text-white">{connectingPinterest ? 'Подключение...' : 'Pinterest'}</div>
-                  <div className="text-xs text-graphite-400">OAuth-авторизация</div>
+                  <div className="font-semibold text-white text-sm">{connectingPinterest ? 'Подключение...' : 'Pinterest'}</div>
+                  <div className="text-xs text-graphite-400">OAuth</div>
+                </div>
+              </button>
+              <button onClick={() => { setShowAddModal(false); connectYouTube(); }} disabled={connectingYoutube} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-red-500/40 transition text-left">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-red-500/15 text-red-500 shrink-0"><YTIcon /></div>
+                <div>
+                  <div className="font-semibold text-white text-sm">{connectingYoutube ? 'Подключение...' : 'YouTube'}</div>
+                  <div className="text-xs text-graphite-400">OAuth + загрузка видео</div>
+                </div>
+              </button>
+              <button onClick={() => { setShowAddModal(false); connectInstagram(); }} disabled={connectingInstagram} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-pink-400/40 transition text-left">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-purple-500/15 to-pink-500/15 text-pink-400 shrink-0"><IGIcon /></div>
+                <div>
+                  <div className="font-semibold text-white text-sm">{connectingInstagram ? 'Подключение...' : 'Instagram'}</div>
+                  <div className="text-xs text-graphite-400">OAuth + Reels/Carousels</div>
                 </div>
               </button>
             </div>
@@ -250,36 +373,55 @@ export function ChannelsPage() {
           </div>
         </div>
       )}
+
+      {/* PostPin connect modal (hidden) */}
+      {showPostpinModal && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm" onClick={() => setShowPostpinModal(false)}>
+          <div className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-lg font-bold text-white mb-4">Подключение аккаунта</h3>
+            <form onSubmit={handlePostpinConnect} className="space-y-3">
+              <div>
+                <label className="label">Cookies</label>
+                <textarea className="input text-xs py-2 min-h-[80px] resize-none font-mono" value={postpinCookies} onChange={(e) => setPostpinCookies(e.target.value)} placeholder='[{"name":"_auth","value":"...","domain":".pinterest.com"}]' />
+                <p className="text-[10px] text-graphite-500 mt-1">Извлеките из браузера через расширение «Cookie Editor» или DevTools</p>
+              </div>
+              <div>
+                <label className="label">Username</label>
+                <input className="input text-xs py-2" value={postpinUsername} onChange={(e) => setPostpinUsername(e.target.value)} placeholder="pinterest_username" />
+              </div>
+              <div>
+                <label className="label">Proxy (необязательно)</label>
+                <input className="input text-xs py-2" value={postpinProxy} onChange={(e) => setPostpinProxy(e.target.value)} placeholder="http://user:pass@host:port" />
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" disabled={postpinConnecting} className="btn-primary text-sm flex-1">{postpinConnecting ? 'Подключение...' : 'Подключить'}</button>
+                <button type="button" onClick={() => setShowPostpinModal(false)} className="btn-ghost text-sm">Закрыть</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function ChannelRow({ channel, onUnlink }: { channel: SocialAccount; onUnlink: (id: string, title: string) => void }) {
+  const isTg = channel.platform === 'telegram';
+  const isYt = channel.platform === 'youtube';
+  const isIg = channel.platform === 'instagram';
+  const colors = isTg ? 'text-sky-400' : isYt ? 'text-red-500' : isIg ? 'text-pink-400' : 'text-red-400';
+  const labels = isTg ? 'TG' : isYt ? 'YT' : isIg ? 'IG' : 'PI';
+
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-sky-500/10 text-sky-400">
-            <TgIcon />
-          </div>
-          <div>
-            <div className="font-semibold text-white">{channel.title}</div>
-            <div className="text-sm text-graphite-400">
-              {channel.username ? `@${channel.username}` : 'Приватный канал'}
-              {' · '}<span className="text-lime">Активен</span>
-            </div>
-            <div className="text-xs text-graphite-500 mt-0.5">
-              Подключён {new Date(channel.linkedAt).toLocaleDateString('ru-RU')}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {channel.username && (
-            <a href={`https://t.me/${channel.username}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-3 py-2 text-xs text-graphite-400 hover:text-sky-400 hover:bg-graphite-800 transition">Открыть</a>
-          )}
-          <button onClick={() => onUnlink(channel.id, channel.title)} className="rounded-lg px-3 py-2 text-xs text-graphite-400 hover:text-red-400 hover:bg-graphite-800 transition">Отключить</button>
+    <div className="card p-3 flex items-center justify-between">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className={`text-[10px] font-bold ${colors} bg-graphite-800 rounded px-1.5 py-0.5 shrink-0`}>{labels}</span>
+        <div className="min-w-0">
+          <div className="text-sm font-medium text-graphite-100 truncate">{channel.title}</div>
+          <div className="text-[11px] text-graphite-500 truncate">{channel.username || channel.externalId}</div>
         </div>
       </div>
+      <button onClick={() => onUnlink(channel.id, channel.title)} className="text-[11px] text-graphite-500 hover:text-red-400 transition ml-2 shrink-0">Удалить</button>
     </div>
   );
 }

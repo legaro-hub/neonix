@@ -7,6 +7,8 @@ import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RequestUser } from '../auth/strategies/jwt.strategy';
 import { PinterestAuthService } from './pinterest-auth.service';
+import { PostpinService } from './postpin.service';
+import { PostpinConfigService } from './postpin-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('pinterest')
@@ -15,6 +17,8 @@ export class PinterestController {
 
   constructor(
     private readonly pinterestAuth: PinterestAuthService,
+    private readonly postpin: PostpinService,
+    private readonly postpinConfig: PostpinConfigService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -36,10 +40,101 @@ export class PinterestController {
   @UseGuards(JwtAuthGuard)
   getAuthUrl(@Req() req: Request & { user: RequestUser }) {
     if (!this.pinterestAuth.isConfigured()) {
-      throw new BadRequestException('Pinterest не подключён');
+      throw new BadRequestException('Pinterest OAuth не подключён. Используйте подключение через cookies.');
     }
     const state = this.pinterestAuth.generateState(req.user.id);
     return { url: this.pinterestAuth.getAuthUrl(state) };
+  }
+
+  @Get('postpin-status')
+  @UseGuards(JwtAuthGuard)
+  async postpinStatus() {
+    return { configured: this.postpin.isConfigured(), healthy: this.postpin.isConfigured() ? await this.postpin.checkHealth() : false };
+  }
+
+  @Get('postpin-email')
+  @UseGuards(JwtAuthGuard)
+  async getPostpinEmail() {
+    const email = this.postpinConfig.getEmail();
+    return { email: email ? email.replace(/(.{2}).*(@.*)/, '$1***$2') : '' };
+  }
+
+  @Post('postpin-email')
+  @UseGuards(JwtAuthGuard)
+  async setPostpinEmail(@Body() body: { email: string }) {
+    this.postpinConfig.setEmail(body.email);
+    return { success: true };
+  }
+
+  @Post('connect-cookies')
+  @UseGuards(JwtAuthGuard)
+  async connectWithCookies(
+    @Req() req: Request & { user: RequestUser },
+    @Body() body: { cookies: string; proxy: string; username: string },
+  ) {
+    if (!this.postpin.isConfigured()) {
+      throw new BadRequestException('PostPin API не подключён');
+    }
+
+    let parsedCookies: any[];
+    try {
+      parsedCookies = JSON.parse(body.cookies);
+      if (!Array.isArray(parsedCookies)) throw new Error();
+    } catch {
+      throw new BadRequestException('Cookies должны быть JSON-массивом');
+    }
+
+    const result = await this.postpin.addAccount(parsedCookies, body.proxy || '');
+
+    if (!result.success && !result.token) {
+      throw new BadRequestException(result.error || 'Ошибка добавления аккаунта');
+    }
+
+    const username = body.username || result.username || 'Pinterest';
+    const token = result.token || '';
+
+    const existing = await this.prisma.socialAccount.findFirst({
+      where: { userId: req.user.id, platform: 'pinterest', externalId: username },
+    });
+
+    if (existing) {
+      await this.prisma.socialAccount.update({
+        where: { id: existing.id },
+        data: { status: 'active', metadata: { accessToken: token, proxy: body.proxy, username, method: 'postpin' } as any },
+      });
+    } else {
+      await this.prisma.socialAccount.create({
+        data: {
+          userId: req.user.id, platform: 'pinterest', externalId: username,
+          title: username, username,
+          metadata: { accessToken: token, proxy: body.proxy, username, method: 'postpin' } as any,
+          status: 'active',
+        },
+      });
+    }
+
+    return { success: true, username };
+  }
+
+  @Post('postpin-boards')
+  @UseGuards(JwtAuthGuard)
+  async postpinBoards(
+    @Req() req: Request & { user: RequestUser },
+    @Body() body: { accountId: string },
+  ) {
+    const account = await this.prisma.socialAccount.findFirst({
+      where: { id: body.accountId, userId: req.user.id, platform: 'pinterest' },
+    });
+    if (!account) throw new BadRequestException('Аккаунт не найден');
+
+    const meta = (account.metadata as Record<string, unknown>) ?? {};
+    const info = await this.postpin.getAccountInfo(
+      meta.username as string,
+      meta.accessToken as string,
+      meta.proxy as string || '',
+    );
+
+    return { boards: info.boards || [] };
   }
 
   @Get('callback')
