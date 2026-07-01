@@ -56,6 +56,7 @@ export interface Post {
   id: string;
   title: string | null;
   body: string;
+  buttons: Array<{ text: string; url: string }> | null;
   status: string;
   scheduledAt: string | null;
   createdAt: string;

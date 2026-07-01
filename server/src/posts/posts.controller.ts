@@ -38,7 +38,7 @@ export class PostsController {
   @Post()
   create(
     @Req() req: Request & { user: RequestUser },
-    @Body() body: { title?: string; body: string; scheduledAt?: string; socialAccountIds: string[] },
+    @Body() body: { title?: string; body: string; buttons?: Array<{ text: string; url: string }>; scheduledAt?: string; socialAccountIds: string[] },
   ) {
     return this.posts.create(req.user.id, body);
   }
@@ -55,7 +55,7 @@ export class PostsController {
   update(
     @Req() req: Request & { user: RequestUser },
     @Param('id') id: string,
-    @Body() body: { title?: string; body?: string; scheduledAt?: string | null; socialAccountIds?: string[] },
+    @Body() body: { title?: string; body?: string; buttons?: Array<{ text: string; url: string }> | null; scheduledAt?: string | null; socialAccountIds?: string[] },
   ) {
     return this.posts.update(req.user.id, id, body);
   }

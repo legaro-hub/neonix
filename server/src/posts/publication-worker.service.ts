@@ -258,6 +258,7 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
 
     const chatId = socialAccount.externalId;
     const text = this.formatPostText(post.title, post.body);
+    const buttons = post.buttons as Array<{ text: string; url: string }> | null;
 
     const media = await this.prisma.mediaAsset.findMany({
       where: { postId: post.id },
@@ -266,13 +267,13 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
 
     let result;
     if (media.length === 0) {
-      result = await this.sendTelegramMessage(token, chatId, text);
+      result = await this.sendTelegramMessage(token, chatId, text, buttons);
     } else if (media.length === 1) {
       const file = media[0];
       if (file.kind === 'video') {
-        result = await this.sendTelegramVideo(token, chatId, file, text);
+        result = await this.sendTelegramVideo(token, chatId, file, text, buttons);
       } else {
-        result = await this.sendTelegramPhoto(token, chatId, file, text);
+        result = await this.sendTelegramPhoto(token, chatId, file, text, buttons);
       }
     } else {
       result = await this.sendTelegramMediaGroup(token, chatId, media, text);
@@ -316,16 +317,23 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
     token: string,
     chatId: string,
     text: string,
+    buttons?: Array<{ text: string; url: string }> | null,
   ): Promise<{ ok: boolean; messageId?: number; description?: string }> {
+    const payload: Record<string, unknown> = {
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: false,
+    };
+    if (buttons && buttons.length > 0) {
+      payload.reply_markup = {
+        inline_keyboard: buttons.map((b) => [{ text: b.text, url: b.url }]),
+      };
+    }
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: 'HTML',
-        disable_web_page_preview: false,
-      }),
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json() as any;
@@ -345,6 +353,7 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
     chatId: string,
     file: any,
     caption: string,
+    buttons?: Array<{ text: string; url: string }> | null,
   ): Promise<{ ok: boolean; messageId?: number; description?: string }> {
     const uploadDir = this.config.get<string>('UPLOAD_DIR') ?? '/app/uploads';
     const filepath = `${uploadDir}/${file.storageKey}`;
@@ -356,6 +365,11 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
       formData.append('photo', new Blob([fileBuffer], { type: file.mimeType }), file.filename);
       formData.append('caption', caption);
       formData.append('parse_mode', 'HTML');
+      if (buttons && buttons.length > 0) {
+        formData.append('reply_markup', JSON.stringify({
+          inline_keyboard: buttons.map((b) => [{ text: b.text, url: b.url }]),
+        }));
+      }
 
       const res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
         method: 'POST',
@@ -375,6 +389,7 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
     chatId: string,
     file: any,
     caption: string,
+    buttons?: Array<{ text: string; url: string }> | null,
   ): Promise<{ ok: boolean; messageId?: number; description?: string }> {
     const uploadDir = this.config.get<string>('UPLOAD_DIR') ?? '/app/uploads';
     const filepath = `${uploadDir}/${file.storageKey}`;
@@ -386,6 +401,11 @@ export class PublicationWorkerService implements OnModuleInit, OnModuleDestroy {
       formData.append('video', new Blob([fileBuffer], { type: file.mimeType }), file.filename);
       formData.append('caption', caption);
       formData.append('parse_mode', 'HTML');
+      if (buttons && buttons.length > 0) {
+        formData.append('reply_markup', JSON.stringify({
+          inline_keyboard: buttons.map((b) => [{ text: b.text, url: b.url }]),
+        }));
+      }
 
       const res = await fetch(`https://api.telegram.org/bot${token}/sendVideo`, {
         method: 'POST',

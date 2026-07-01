@@ -90,6 +90,7 @@ model Post {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String?
   body        String   @default("")
+  buttons     Json?
   status      String   @default("draft")
   scheduledAt DateTime? @db.Timestamptz()
   createdAt   DateTime @default(now()) @db.Timestamptz()

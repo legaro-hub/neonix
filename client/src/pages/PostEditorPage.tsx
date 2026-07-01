@@ -11,6 +11,8 @@ type MediaItem =
 
 type Platform = 'telegram' | 'pinterest' | 'youtube' | 'instagram';
 
+type ButtonItem = { text: string; url: string };
+
 const PLATFORMS: Array<{ key: Platform; label: string; color: string; icon: string; desc: string }> = [
   { key: 'telegram', label: 'Telegram', color: 'text-sky-400 border-sky-400/30 bg-sky-400/5', icon: '✈', desc: 'Текст + фото/видео/альбом' },
   { key: 'pinterest', label: 'Pinterest', color: 'text-red-400 border-red-400/30 bg-red-400/5', icon: '📌', desc: 'Изображение + описание (100 символов)' },
@@ -53,13 +55,13 @@ function TemplatesPanel({ onInsert }: { onInsert: (text: string) => void }) {
 
   const save = (t: typeof templates) => { setTemplates(t); localStorage.setItem('neonix_templates', JSON.stringify(t)); };
   const add = () => { if (!newName.trim() || !newText.trim()) return; save([...templates, { id: Date.now().toString(), name: newName, text: newText }]); setNewName(''); setNewText(''); setShowAdd(false); };
-  const remove = (id: string) => save(templates.filter((t: { id: string; name: string; text: string }) => t.id !== id));
+  const remove = (id: string) => save(templates.filter((t: { id: string }) => t.id !== id));
 
   return (
     <div className="card p-4">
       <h3 className="text-sm font-semibold text-white mb-3">Шаблоны</h3>
       <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
-        {templates.map((t: any) => (
+        {templates.map((t: { id: string; name: string; text: string }) => (
           <div key={t.id} className="group flex items-start gap-2 p-2 rounded-lg bg-graphite-800/40 border border-graphite-700/30 hover:border-graphite-600/50 cursor-pointer transition" onClick={() => onInsert(t.text)}>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-medium text-graphite-200 truncate">{t.name}</div>
@@ -103,6 +105,10 @@ export function PostEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [draftPostId, setDraftPostId] = useState<string | null>(id || null);
+  const [buttons, setButtons] = useState<ButtonItem[]>([]);
+  const [showButtonAdd, setShowButtonAdd] = useState(false);
+  const [newBtnText, setNewBtnText] = useState('');
+  const [newBtnUrl, setNewBtnUrl] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
 
   const limits = LIMITS[platform];
@@ -118,6 +124,7 @@ export function PostEditorPage() {
           setTitle(post.title || '');
           setBody(post.body);
           if (editorRef.current) editorRef.current.innerHTML = mdToHtml(post.body);
+          if (post.buttons) setButtons(post.buttons as ButtonItem[]);
           if (post.scheduledAt) {
             setScheduledDate(post.scheduledAt.slice(0, 10));
             setScheduledTime(post.scheduledAt.slice(11, 16));
@@ -135,10 +142,17 @@ export function PostEditorPage() {
   }, []);
 
   const execCmd = (cmd: string, val?: string) => { document.execCommand(cmd, false, val); editorRef.current?.focus(); syncBody(); };
+
   const insertMd = (before: string, after: string) => {
     const sel = window.getSelection();
     if (!sel || !editorRef.current) return;
     const text = before + sel.toString() + after;
+    document.execCommand('insertText', false, text);
+    syncBody();
+  };
+
+  const insertAtCursor = (text: string) => {
+    editorRef.current?.focus();
     document.execCommand('insertText', false, text);
     syncBody();
   };
@@ -149,15 +163,19 @@ export function PostEditorPage() {
       setError(`Максимум ${limits.maxMedia} файлов`);
       return;
     }
+    const newMedia: MediaItem[] = [];
     for (const file of files) {
       const reader = new FileReader();
       const preview = await new Promise<string>((r) => { reader.onload = () => r(reader.result as string); reader.readAsDataURL(file); });
       const mediaKind = file.type.startsWith('video/') ? 'video' : file.type === 'image/gif' ? 'gif' : 'image';
-      const idx = media.length;
-      setMedia((prev) => [...prev, { kind: 'uploading', file, preview, mediaKind, status: 'uploading' }]);
-      autoUploadFile(file, idx);
+      newMedia.push({ kind: 'uploading', file, preview, mediaKind, status: 'uploading' });
     }
+    const startIdx = media.length;
+    setMedia((prev) => [...prev, ...newMedia]);
     e.target.value = '';
+    for (let i = 0; i < files.length; i++) {
+      autoUploadFile(files[i], startIdx + i);
+    }
   };
 
   const autoUploadFile = async (file: File, index: number) => {
@@ -186,6 +204,18 @@ export function PostEditorPage() {
     setSelectedChannels((prev) => prev.includes(chId) ? prev.filter((c) => c !== chId) : [...prev, chId]);
   };
 
+  const addInlineButton = () => {
+    if (!newBtnText.trim() || !newBtnUrl.trim()) return;
+    setButtons((prev) => [...prev, { text: newBtnText.trim(), url: newBtnUrl.trim() }]);
+    setNewBtnText('');
+    setNewBtnUrl('');
+    setShowButtonAdd(false);
+  };
+
+  const removeInlineButton = (idx: number) => {
+    setButtons((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (editorRef.current) syncBody();
@@ -202,7 +232,7 @@ export function PostEditorPage() {
     const scheduledAt = scheduledDate ? `${scheduledDate}T${scheduledTime}:00` : undefined;
     try {
       const postId = draftPostId;
-      const data = { title: title || undefined, body, scheduledAt, socialAccountIds: selectedChannels, link: link || undefined } as any;
+      const data = { title: title || undefined, body, buttons: buttons.length > 0 ? buttons : undefined, scheduledAt, socialAccountIds: selectedChannels, link: link || undefined } as any;
       if (postId) { await api.updatePost(postId, data); }
       else { await api.createPost(data); }
       navigate('/app/calendar');
@@ -220,7 +250,6 @@ export function PostEditorPage() {
           <button onClick={() => navigate('/app/calendar')} className="text-sm text-graphite-400 hover:text-white transition">← Календарь</button>
         </div>
 
-        {/* Platform selector */}
         <div className="mb-6">
           <label className="label">Платформа</label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -241,7 +270,6 @@ export function PostEditorPage() {
         <form onSubmit={onSubmit} className="space-y-5">
           {error && <div className="rounded-lg border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-400">{error}</div>}
 
-          {/* ─── Telegram ─── */}
           {platform === 'telegram' && (
             <>
               <div>
@@ -251,8 +279,8 @@ export function PostEditorPage() {
               </div>
               <div>
                 <label className="label">Текст поста</label>
-                <div className="rounded-xl border border-graphite-700/40 bg-graphite-900/40 overflow-hidden">
-                  <div className="flex gap-0.5 border-b border-graphite-700/40 px-2 py-1.5 flex-wrap">
+                <div className="rounded-xl border border-graphite-700/40 bg-graphite-900/40 overflow-hidden relative z-0">
+                  <div className="flex gap-0.5 border-b border-graphite-700/40 px-2 py-1.5 flex-wrap relative z-10">
                     {[
                       { cmd: 'bold', label: 'B', title: 'Жирный', cls: 'font-bold' },
                       { cmd: 'italic', label: 'I', title: 'Курсив', cls: 'italic' },
@@ -263,24 +291,57 @@ export function PostEditorPage() {
                     <div className="w-px bg-graphite-700/40 mx-1" />
                     <button type="button" onClick={() => insertMd('\n> ', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-400 hover:text-white transition" title="Цитата">❝</button>
                     <button type="button" onClick={() => insertMd('||', '||')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-400 hover:text-white transition font-mono" title="Спойлер">||</button>
+                    <button type="button" onClick={() => insertMd('\n---\n', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-400 hover:text-white transition" title="Разделитель">—</button>
+                    <button type="button" onClick={() => insertMd('\n', '')} className="rounded-lg px-2.5 py-1 text-xs text-graphite-400 hover:text-white transition font-mono" title="Перенос">↵</button>
                     <div className="w-px bg-graphite-700/40 mx-1" />
-                    <EmojiPicker onEmoji={(e) => { editorRef.current?.focus(); document.execCommand('insertText', false, e); syncBody(); }} />
+                    <EmojiPicker onEmoji={(e) => insertAtCursor(e)} />
                   </div>
                   <div ref={editorRef} contentEditable suppressContentEditableWarning onInput={syncBody}
-                    className="min-h-[180px] max-h-[400px] overflow-y-auto px-4 py-3 text-sm text-graphite-200 leading-relaxed focus:outline-none" />
+                    className="min-h-[180px] max-h-[400px] overflow-y-auto px-4 py-3 text-sm text-graphite-200 leading-relaxed focus:outline-none relative z-0" />
                 </div>
                 <div className="flex justify-end mt-1">
                   <span className={`text-[11px] ${body.length > limits.body ? 'text-red-400' : 'text-graphite-600'}`}>{body.length}/{limits.body}</span>
                 </div>
               </div>
+
+              {/* Inline buttons */}
+              <div className="card p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-white">Кнопки</h3>
+                  <button type="button" onClick={() => setShowButtonAdd(!showButtonAdd)} className="text-xs text-graphite-500 hover:text-lime transition">
+                    {showButtonAdd ? 'Отмена' : '+ Добавить'}
+                  </button>
+                </div>
+                {buttons.length > 0 && (
+                  <div className="space-y-1.5 mb-3">
+                    {buttons.map((btn, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-graphite-800/40 border border-graphite-700/30">
+                        <span className="text-xs text-sky-400 truncate flex-1">{btn.text}</span>
+                        <span className="text-[10px] text-graphite-500 truncate max-w-[200px]">{btn.url}</span>
+                        <button type="button" onClick={() => removeInlineButton(idx)} className="text-graphite-600 hover:text-red-400 text-xs shrink-0">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showButtonAdd && (
+                  <div className="space-y-2 p-3 rounded-lg bg-graphite-800/40 border border-graphite-700/30">
+                    <input className="input text-xs py-2" placeholder="Текст кнопки" value={newBtnText} onChange={(e) => setNewBtnText(e.target.value)} />
+                    <input className="input text-xs py-2" placeholder="https://..." value={newBtnUrl} onChange={(e) => setNewBtnUrl(e.target.value)} />
+                    <button type="button" onClick={addInlineButton} className="btn-primary text-xs py-1.5 w-full">Добавить</button>
+                  </div>
+                )}
+                {buttons.length === 0 && !showButtonAdd && (
+                  <p className="text-[11px] text-graphite-500">URL-кнопки под постом в Telegram</p>
+                )}
+              </div>
+
               <MediaUpload media={media} limits={limits} onAdd={handleMediaChange} onRemove={removeMedia} />
               <div className="lg:hidden mt-4">
-                <TemplatesPanel onInsert={(text) => { editorRef.current?.focus(); document.execCommand('insertText', false, text); syncBody(); }} />
+                <TemplatesPanel onInsert={insertAtCursor} />
               </div>
             </>
           )}
 
-          {/* ─── Pinterest ─── */}
           {platform === 'pinterest' && (
             <>
               <div>
@@ -304,7 +365,6 @@ export function PostEditorPage() {
             </>
           )}
 
-          {/* ─── YouTube ─── */}
           {platform === 'youtube' && (
             <>
               <div>
@@ -324,7 +384,6 @@ export function PostEditorPage() {
             </>
           )}
 
-          {/* ─── Instagram ─── */}
           {platform === 'instagram' && (
             <>
               <div>
@@ -342,13 +401,11 @@ export function PostEditorPage() {
             </>
           )}
 
-          {/* DateTime */}
           <div>
             <label className="label">Расписание</label>
             <DateTimePicker date={scheduledDate} time={scheduledTime} onDateChange={setScheduledDate} onTimeChange={setScheduledTime} />
           </div>
 
-          {/* Channels */}
           <div>
             <label className="label">Аккаунты ({filteredChannels.length})</label>
             {filteredChannels.length === 0 ? (
@@ -371,11 +428,10 @@ export function PostEditorPage() {
             <button type="button" onClick={() => navigate('/app/calendar')} className="btn-ghost">Отмена</button>
           </div>
         </form>
-        {/* Desktop sidebar — templates */}
         {platform === 'telegram' && (
           <div className="hidden lg:block">
             <div className="sticky top-6">
-              <TemplatesPanel onInsert={(text) => { editorRef.current?.focus(); document.execCommand('insertText', false, text); syncBody(); }} />
+              <TemplatesPanel onInsert={insertAtCursor} />
             </div>
           </div>
         )}
@@ -407,6 +463,11 @@ function MediaUpload({ media, limits, onAdd, onRemove }: {
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-graphite-600 border-t-lime" />
                 </div>
               )}
+              {m.kind === 'uploading' && m.status === 'error' && (
+                <div className="absolute inset-0 bg-red-900/60 flex items-center justify-center">
+                  <span className="text-red-400 text-xs">✕</span>
+                </div>
+              )}
               <button type="button" onClick={() => onRemove(i)} className="absolute top-0.5 right-0.5 h-4 w-4 rounded bg-red-500/80 text-white text-[10px] flex items-center justify-center hover:bg-red-500">✕</button>
             </div>
           );
@@ -422,12 +483,13 @@ function MediaUpload({ media, limits, onAdd, onRemove }: {
   );
 }
 
-/* ─── Emoji Picker (simplified) ─── */
+/* ─── Emoji Picker ─── */
 const EMOJI_ROWS = [
   ['👍', '❤️', '🔥', '⭐', '✅', '❌', '🎉', '📢', '💬', '📊', '🔗', '💡', '🚀', '💰', '🎯', '📌'],
   ['😊', '😍', '🤔', '😎', '🥳', '😢', '😱', '🤩', '😂', '🤣', '😏', '🥺', '😴', '🤯', '😤', '😈'],
-  ['👉', '💪', '🙏', '👏', '🤝', '👋', '✋', '🫶', '✋', '✊', '🍕', '🍔', '☕', '🎂', '🍩', '🍰'],
-  ['🌸', '🌙', '⭐', '🌈', '☀️', '🌊', '🔥', '❄️', '🐶', '🐱', '🦊', '🦋', '📱', '💻', '🎮', '🎵'],
+  ['👉', '💪', '🙏', '👏', '🤝', '👋', '✋', '🫶', '✊', '💪', '🍕', '🍔', '☕', '🎂', '🍩', '🍰'],
+  ['🌸', '🌙', '🌈', '☀️', '🌊', '❄️', '🐶', '🐱', '🦊', '🦋', '📱', '💻', '🎮', '🎵', '🎶', '🧲'],
+  ['🔴', '🟢', '🔵', '🟡', '🟠', '🟣', '⚫', '⚪', '🟤', '💯', '🔴', '🟧', '🟨', '🟩', '🟦', '⬛'],
 ];
 
 function EmojiPicker({ onEmoji }: { onEmoji: (e: string) => void }) {
@@ -442,11 +504,11 @@ function EmojiPicker({ onEmoji }: { onEmoji: (e: string) => void }) {
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(!open)} className="rounded-lg px-2.5 py-1 text-xs text-graphite-400 hover:text-white transition">😊</button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-graphite-900 border border-graphite-700 rounded-xl p-2 shadow-xl w-64">
+        <div className="absolute top-full left-0 mt-2 z-[100] bg-graphite-900 border border-graphite-700 rounded-xl p-2 shadow-2xl shadow-black/50 w-64">
           {EMOJI_ROWS.map((row, i) => (
             <div key={i} className="flex flex-wrap gap-0.5 mb-1">
-              {row.map((e) => (
-                <button key={e} type="button" onClick={() => { onEmoji(e); setOpen(false); }}
+              {row.map((e, j) => (
+                <button key={`${i}-${j}`} type="button" onClick={() => { onEmoji(e); setOpen(false); }}
                   className="w-7 h-7 flex items-center justify-center rounded hover:bg-graphite-800 text-sm transition">{e}</button>
               ))}
             </div>

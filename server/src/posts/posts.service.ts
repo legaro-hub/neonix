@@ -48,6 +48,7 @@ export class PostsService {
   async create(userId: string, data: {
     title?: string;
     body: string;
+    buttons?: Array<{ text: string; url: string }>;
     scheduledAt?: string;
     socialAccountIds: string[];
   }) {
@@ -71,6 +72,7 @@ export class PostsService {
         userId,
         title: data.title || null,
         body: data.body,
+        buttons: data.buttons && data.buttons.length > 0 ? data.buttons : undefined,
         status: data.scheduledAt ? 'scheduled' : 'draft',
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
         publications: {
@@ -95,6 +97,7 @@ export class PostsService {
   async update(userId: string, postId: string, data: {
     title?: string;
     body?: string;
+    buttons?: Array<{ text: string; url: string }> | null;
     scheduledAt?: string | null;
     socialAccountIds?: string[];
   }) {
@@ -104,6 +107,7 @@ export class PostsService {
     const updateData: any = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.body !== undefined) updateData.body = data.body;
+    if (data.buttons !== undefined) updateData.buttons = data.buttons && data.buttons.length > 0 ? data.buttons : null;
     if (data.scheduledAt !== undefined) {
       updateData.scheduledAt = data.scheduledAt ? new Date(data.scheduledAt) : null;
       updateData.status = data.scheduledAt ? 'scheduled' : 'draft';
