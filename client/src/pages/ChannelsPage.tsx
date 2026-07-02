@@ -210,17 +210,17 @@ export function ChannelsPage() {
             <button onClick={() => setShowAddModal(true)} className="btn-primary">Подключить</button>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* Telegram */}
             {tgChannels.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   <span className="text-[10px] font-bold text-sky-400 bg-sky-400/10 rounded px-1.5 py-0.5">TG</span>
                   <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Telegram · {tgChannels.length}</h2>
                 </div>
-                <div className="divide-y divide-graphite-800/50 border-t border-graphite-800/50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {tgChannels.map((ch) => (
-                    <ChannelRow key={ch.id} channel={ch} onUnlink={unlinkChannel} />
+                    <ChannelCard key={ch.id} channel={ch} onUnlink={unlinkChannel} />
                   ))}
                 </div>
               </div>
@@ -229,13 +229,13 @@ export function ChannelsPage() {
             {/* Pinterest */}
             {piAccounts.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   <span onClick={handleSecretPiClick} className="text-[10px] font-bold text-red-400 bg-red-400/10 rounded px-1.5 py-0.5 cursor-default select-none">PI</span>
                   <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Pinterest · {piAccounts.length}</h2>
                 </div>
-                <div className="divide-y divide-graphite-800/50 border-t border-graphite-800/50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {piAccounts.map((ch) => (
-                    <PinterestRow key={ch.id} channel={ch} onUnlink={unlinkChannel} onSelectBoard={openBoardSelect} />
+                    <PinterestCard key={ch.id} channel={ch} onUnlink={unlinkChannel} onSelectBoard={openBoardSelect} />
                   ))}
                 </div>
               </div>
@@ -244,13 +244,13 @@ export function ChannelsPage() {
             {/* YouTube */}
             {ytAccounts.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   <span className="text-[10px] font-bold text-red-500 bg-red-500/10 rounded px-1.5 py-0.5">YT</span>
                   <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">YouTube · {ytAccounts.length}</h2>
                 </div>
-                <div className="divide-y divide-graphite-800/50 border-t border-graphite-800/50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {ytAccounts.map((ch) => (
-                    <ChannelRow key={ch.id} channel={ch} onUnlink={unlinkChannel} />
+                    <ChannelCard key={ch.id} channel={ch} onUnlink={unlinkChannel} />
                   ))}
                 </div>
               </div>
@@ -259,13 +259,13 @@ export function ChannelsPage() {
             {/* Instagram */}
             {igAccounts.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-2">
                   <span className="text-[10px] font-bold text-pink-400 bg-pink-400/10 rounded px-1.5 py-0.5">IG</span>
                   <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Instagram · {igAccounts.length}</h2>
                 </div>
-                <div className="divide-y divide-graphite-800/50 border-t border-graphite-800/50">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {igAccounts.map((ch) => (
-                    <ChannelRow key={ch.id} channel={ch} onUnlink={unlinkChannel} />
+                    <ChannelCard key={ch.id} channel={ch} onUnlink={unlinkChannel} />
                   ))}
                 </div>
               </div>
@@ -405,55 +405,67 @@ export function ChannelsPage() {
   );
 }
 
-function ChannelRow({ channel, onUnlink }: { channel: SocialAccount; onUnlink: (id: string, title: string) => void }) {
+function ChannelCard({ channel, onUnlink }: { channel: SocialAccount; onUnlink: (id: string, title: string) => void }) {
   const [avatar, setAvatar] = useState<string | null>(null);
   const avatarBg = channel.platform === 'telegram' ? 'bg-sky-500/20 text-sky-400' : channel.platform === 'youtube' ? 'bg-red-500/20 text-red-400' : channel.platform === 'instagram' ? 'bg-pink-400/20 text-pink-400' : 'bg-red-400/20 text-red-400';
   const letter = (channel.title || '?').charAt(0).toUpperCase();
+  const openUrl = channel.platform === 'telegram' && channel.username
+    ? `https://t.me/${channel.username}`
+    : channel.platform === 'youtube' && channel.username
+    ? `https://youtube.com/@${channel.username}`
+    : channel.platform === 'instagram' && channel.username
+    ? `https://instagram.com/${channel.username}`
+    : '';
 
   useEffect(() => {
     if (channel.platform !== 'telegram' || !channel.externalId) return;
     const url = api.channelPhoto(channel.externalId);
-    fetch(url, { method: 'HEAD' }).then((r) => {
-      if (r.ok) setAvatar(url);
-    }).catch(() => {});
+    fetch(url, { method: 'HEAD' }).then((r) => { if (r.ok) setAvatar(url); }).catch(() => {});
   }, [channel.platform, channel.externalId]);
 
   return (
-    <div className="flex items-center gap-3 py-2 px-1">
+    <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-graphite-800/60 bg-graphite-900/30 hover:bg-graphite-800/30 transition">
       {avatar ? (
-        <img src={avatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+        <img src={avatar} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
       ) : (
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${avatarBg}`}>
-          {letter}
-        </div>
+        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${avatarBg}`}>{letter}</div>
       )}
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium text-graphite-100 truncate">{channel.title}</div>
-        <div className="text-[11px] text-graphite-500 truncate">@{channel.username || channel.externalId}</div>
+        <div className="text-xs font-medium text-graphite-100 truncate">{channel.title}</div>
+        <div className="text-[10px] text-graphite-500 truncate">@{channel.username || channel.externalId}</div>
       </div>
-      <button onClick={() => onUnlink(channel.id, channel.title)} className="text-[11px] text-graphite-500 hover:text-red-400 transition shrink-0">Удалить</button>
+      <div className="flex items-center gap-1 shrink-0">
+        {openUrl && (
+          <a href={openUrl} target="_blank" rel="noopener noreferrer" className="w-6 h-6 flex items-center justify-center rounded text-graphite-500 hover:text-lime transition" title="Открыть">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
+        )}
+        <button onClick={() => onUnlink(channel.id, channel.title)} className="w-6 h-6 flex items-center justify-center rounded text-graphite-600 hover:text-red-400 transition" title="Удалить">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+      </div>
     </div>
   );
 }
 
-function PinterestRow({ channel, onUnlink, onSelectBoard }: { channel: SocialAccount; onUnlink: (id: string, title: string) => void; onSelectBoard: (accountId: string) => void }) {
+function PinterestCard({ channel, onUnlink, onSelectBoard }: { channel: SocialAccount; onUnlink: (id: string, title: string) => void; onSelectBoard: (accountId: string) => void }) {
   const meta = (channel.metadata as Record<string, unknown>) ?? {};
   const boardId = meta.boardId as string | undefined;
   const letter = (channel.title || 'P').charAt(0).toUpperCase();
 
   return (
-    <div className="flex items-center gap-3 py-2 px-1">
-      <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 bg-red-400/20 text-red-400">
-        {letter}
-      </div>
+    <div className="flex items-center gap-2.5 p-2.5 rounded-xl border border-graphite-800/60 bg-graphite-900/30 hover:bg-graphite-800/30 transition">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-red-400/20 text-red-400">{letter}</div>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium text-graphite-100 truncate">{channel.title}</div>
-        <div className="text-[11px] text-graphite-500 truncate">
-          {boardId ? `Доска: ${boardId}` : 'Доска не выбрана'}
-        </div>
+        <div className="text-xs font-medium text-graphite-100 truncate">{channel.title}</div>
+        <div className="text-[10px] text-graphite-500 truncate">{boardId ? `Доска: ${boardId}` : 'Доска не выбрана'}</div>
       </div>
-      <button onClick={() => onSelectBoard(channel.id)} className="text-[11px] text-graphite-500 hover:text-lime transition shrink-0">Доска</button>
-      <button onClick={() => onUnlink(channel.id, channel.title)} className="text-[11px] text-graphite-500 hover:text-red-400 transition shrink-0">Удалить</button>
+      <div className="flex items-center gap-1 shrink-0">
+        <button onClick={() => onSelectBoard(channel.id)} className="text-[10px] text-graphite-500 hover:text-lime transition px-1" title="Доска">⚙</button>
+        <button onClick={() => onUnlink(channel.id, channel.title)} className="w-6 h-6 flex items-center justify-center rounded text-graphite-600 hover:text-red-400 transition" title="Удалить">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+      </div>
     </div>
   );
 }
