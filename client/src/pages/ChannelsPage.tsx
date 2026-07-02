@@ -406,17 +406,27 @@ export function ChannelsPage() {
 }
 
 function ChannelRow({ channel, onUnlink }: { channel: SocialAccount; onUnlink: (id: string, title: string) => void }) {
-  const isTg = channel.platform === 'telegram';
-  const isYt = channel.platform === 'youtube';
-  const isIg = channel.platform === 'instagram';
-  const avatarBg = isTg ? 'bg-sky-500/20 text-sky-400' : isYt ? 'bg-red-500/20 text-red-400' : isIg ? 'bg-pink-400/20 text-pink-400' : 'bg-red-400/20 text-red-400';
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const avatarBg = channel.platform === 'telegram' ? 'bg-sky-500/20 text-sky-400' : channel.platform === 'youtube' ? 'bg-red-500/20 text-red-400' : channel.platform === 'instagram' ? 'bg-pink-400/20 text-pink-400' : 'bg-red-400/20 text-red-400';
   const letter = (channel.title || '?').charAt(0).toUpperCase();
+
+  useEffect(() => {
+    if (channel.platform !== 'telegram' || !channel.externalId) return;
+    const url = api.channelPhoto(channel.externalId);
+    fetch(url, { method: 'HEAD' }).then((r) => {
+      if (r.ok) setAvatar(url);
+    }).catch(() => {});
+  }, [channel.platform, channel.externalId]);
 
   return (
     <div className="flex items-center gap-3 py-2 px-1">
-      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${avatarBg}`}>
-        {letter}
-      </div>
+      {avatar ? (
+        <img src={avatar} alt="" className="w-9 h-9 rounded-full object-cover shrink-0" />
+      ) : (
+        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${avatarBg}`}>
+          {letter}
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium text-graphite-100 truncate">{channel.title}</div>
         <div className="text-[11px] text-graphite-500 truncate">@{channel.username || channel.externalId}</div>

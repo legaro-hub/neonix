@@ -282,6 +282,8 @@ export const api = {
   setPostpinEmail: (email: string) =>
     request<{ success: boolean }>('/pinterest/postpin-email', { method: 'POST', body: JSON.stringify({ email }) }),
 
+  channelPhoto: (chatId: string) => `/api/telegram/channel-photo/${chatId}`,
+
   // ─── YOUTUBE ───
 
   youtubeAuthUrl: () =>

@@ -1,10 +1,10 @@
-import { Controller, Post, Body, Req, Logger } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Res, Req, Logger } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ConfigService } from '@nestjs/config';
 import { SocialAccountsService } from '../social-accounts/social-accounts.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { timingSafeEqual } from 'crypto';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 interface TgUpdate {
   update_id: number;
@@ -24,6 +24,7 @@ interface TgUpdate {
 @Controller('telegram')
 export class TelegramController {
   private readonly logger = new Logger(TelegramController.name);
+  private avatarCache = new Map<string, { data: Buffer; mime: string; ts: number }>();
 
   constructor(
     private readonly socialAccounts: SocialAccountsService,
@@ -139,6 +140,57 @@ export class TelegramController {
         chat.id,
         '❌ Не удалось привязать канал. Попробуйте ещё раз или обратитесь в поддержку.',
       );
+    }
+  }
+
+  @Get('channel-photo/:chatId')
+  async getChannelPhoto(@Param('chatId') chatId: string, @Res() res: Response) {
+    const botToken = this.config.get<string>('TG_BOT_TOKEN');
+    if (!botToken) return res.status(503).json({ error: 'Bot token not set' });
+
+    const cached = this.avatarCache.get(chatId);
+    if (cached && Date.now() - cached.ts < 3600000) {
+      res.setHeader('Content-Type', cached.mime);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      return res.send(cached.data);
+    }
+
+    try {
+      const chatRes = await fetch(`https://api.telegram.org/bot${botToken}/getChat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId }),
+      });
+      const chatData = await chatRes.json() as any;
+      if (!chatData.ok || !chatData.result?.photo) {
+        return res.status(404).json({ error: 'No photo' });
+      }
+
+      const fileId = chatData.result.photo.big_file_id || chatData.result.photo.small_file_id;
+      const fileRes = await fetch(`https://api.telegram.org/bot${botToken}/getFile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_id: fileId }),
+      });
+      const fileData = await fileRes.json() as any;
+      if (!fileData.ok || !fileData.result?.file_path) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+
+      const imgRes = await fetch(`https://api.telegram.org/file/bot${botToken}/${fileData.result.file_path}`);
+      if (!imgRes.ok) return res.status(502).json({ error: 'Download failed' });
+
+      const buf = Buffer.from(await imgRes.arrayBuffer());
+      const mime = fileData.result.file_path.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+      this.avatarCache.set(chatId, { data: buf, mime, ts: Date.now() });
+
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.send(buf);
+    } catch (err: any) {
+      this.logger.warn(`Avatar fetch failed for ${chatId}: ${err.message}`);
+      res.status(500).json({ error: 'Failed' });
     }
   }
 
