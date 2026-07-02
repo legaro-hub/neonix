@@ -152,8 +152,24 @@ export function PostEditorPage() {
   };
 
   const insertAtCursor = (text: string) => {
-    editorRef.current?.focus();
-    document.execCommand('insertText', false, text);
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) {
+      document.execCommand('insertText', false, text);
+    } else {
+      const range = sel.getRangeAt(0);
+      if (!el.contains(range.commonAncestorContainer)) {
+        range.selectNodeContents(el);
+        range.collapse(false);
+      }
+      range.deleteContents();
+      range.insertNode(document.createTextNode(text));
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
     syncBody();
   };
 
@@ -504,7 +520,7 @@ function EmojiPicker({ onEmoji }: { onEmoji: (e: string) => void }) {
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(!open)} className="rounded-lg px-2.5 py-1 text-xs text-graphite-400 hover:text-white transition">😊</button>
       {open && (
-        <div className="absolute top-full left-0 mt-2 z-[100] bg-graphite-900 border border-graphite-700 rounded-xl p-2 shadow-2xl shadow-black/50 w-64">
+        <div className="absolute top-full left-0 mt-2 z-[100] bg-graphite-900 border border-graphite-700 rounded-xl p-2 shadow-2xl shadow-black/50 w-64 max-h-[320px] overflow-y-auto">
           {EMOJI_ROWS.map((row, i) => (
             <div key={i} className="flex flex-wrap gap-0.5 mb-1">
               {row.map((e, j) => (
