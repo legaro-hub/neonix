@@ -214,11 +214,11 @@ export function ChannelsPage() {
             {/* Telegram */}
             {tgChannels.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span className="text-[10px] font-bold text-sky-400 bg-sky-400/10 rounded px-1.5 py-0.5">TG</span>
                   <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Telegram · {tgChannels.length}</h2>
                 </div>
-                <div className="space-y-1">
+                <div className="divide-y divide-graphite-800/50 border-t border-graphite-800/50">
                   {tgChannels.map((ch) => (
                     <ChannelRow key={ch.id} channel={ch} onUnlink={unlinkChannel} />
                   ))}
@@ -229,11 +229,11 @@ export function ChannelsPage() {
             {/* Pinterest */}
             {piAccounts.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span onClick={handleSecretPiClick} className="text-[10px] font-bold text-red-400 bg-red-400/10 rounded px-1.5 py-0.5 cursor-default select-none">PI</span>
                   <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Pinterest · {piAccounts.length}</h2>
                 </div>
-                <div className="space-y-1">
+                <div className="divide-y divide-graphite-800/50 border-t border-graphite-800/50">
                   {piAccounts.map((ch) => (
                     <PinterestRow key={ch.id} channel={ch} onUnlink={unlinkChannel} onSelectBoard={openBoardSelect} />
                   ))}
@@ -244,11 +244,11 @@ export function ChannelsPage() {
             {/* YouTube */}
             {ytAccounts.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span className="text-[10px] font-bold text-red-500 bg-red-500/10 rounded px-1.5 py-0.5">YT</span>
                   <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">YouTube · {ytAccounts.length}</h2>
                 </div>
-                <div className="space-y-1">
+                <div className="divide-y divide-graphite-800/50 border-t border-graphite-800/50">
                   {ytAccounts.map((ch) => (
                     <ChannelRow key={ch.id} channel={ch} onUnlink={unlinkChannel} />
                   ))}
@@ -259,11 +259,11 @@ export function ChannelsPage() {
             {/* Instagram */}
             {igAccounts.length > 0 && (
               <div>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span className="text-[10px] font-bold text-pink-400 bg-pink-400/10 rounded px-1.5 py-0.5">IG</span>
                   <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Instagram · {igAccounts.length}</h2>
                 </div>
-                <div className="space-y-1">
+                <div className="divide-y divide-graphite-800/50 border-t border-graphite-800/50">
                   {igAccounts.map((ch) => (
                     <ChannelRow key={ch.id} channel={ch} onUnlink={unlinkChannel} />
                   ))}
@@ -409,19 +409,19 @@ function ChannelRow({ channel, onUnlink }: { channel: SocialAccount; onUnlink: (
   const isTg = channel.platform === 'telegram';
   const isYt = channel.platform === 'youtube';
   const isIg = channel.platform === 'instagram';
-  const colors = isTg ? 'text-sky-400' : isYt ? 'text-red-500' : isIg ? 'text-pink-400' : 'text-red-400';
-  const labels = isTg ? 'TG' : isYt ? 'YT' : isIg ? 'IG' : 'PI';
+  const avatarBg = isTg ? 'bg-sky-500/20 text-sky-400' : isYt ? 'bg-red-500/20 text-red-400' : isIg ? 'bg-pink-400/20 text-pink-400' : 'bg-red-400/20 text-red-400';
+  const letter = (channel.title || '?').charAt(0).toUpperCase();
 
   return (
-    <div className="card p-3 flex items-center justify-between">
-      <div className="flex items-center gap-3 min-w-0">
-        <span className={`text-[10px] font-bold ${colors} bg-graphite-800 rounded px-1.5 py-0.5 shrink-0`}>{labels}</span>
-        <div className="min-w-0">
-          <div className="text-sm font-medium text-graphite-100 truncate">{channel.title}</div>
-          <div className="text-[11px] text-graphite-500 truncate">{channel.username || channel.externalId}</div>
-        </div>
+    <div className="flex items-center gap-3 py-2 px-1">
+      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${avatarBg}`}>
+        {letter}
       </div>
-      <button onClick={() => onUnlink(channel.id, channel.title)} className="text-[11px] text-graphite-500 hover:text-red-400 transition ml-2 shrink-0">Удалить</button>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium text-graphite-100 truncate">{channel.title}</div>
+        <div className="text-[11px] text-graphite-500 truncate">@{channel.username || channel.externalId}</div>
+      </div>
+      <button onClick={() => onUnlink(channel.id, channel.title)} className="text-[11px] text-graphite-500 hover:text-red-400 transition shrink-0">Удалить</button>
     </div>
   );
 }
@@ -429,35 +429,21 @@ function ChannelRow({ channel, onUnlink }: { channel: SocialAccount; onUnlink: (
 function PinterestRow({ channel, onUnlink, onSelectBoard }: { channel: SocialAccount; onUnlink: (id: string, title: string) => void; onSelectBoard: (accountId: string) => void }) {
   const meta = (channel.metadata as Record<string, unknown>) ?? {};
   const boardId = meta.boardId as string | undefined;
+  const letter = (channel.title || 'P').charAt(0).toUpperCase();
 
   return (
-    <div className="card p-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-red-500/10 text-red-400">
-            <PIcon />
-          </div>
-          <div>
-            <div className="font-semibold text-white">{channel.title}</div>
-            <div className="text-sm text-graphite-400">
-              {channel.username ? `@${channel.username}` : channel.externalId}
-              {' · '}<span className="text-lime">Активен</span>
-            </div>
-            <div className="text-xs text-graphite-500 mt-0.5">
-              {boardId ? `Доска: ${boardId}` : 'Доска не выбрана'}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {!boardId && (
-            <button onClick={() => onSelectBoard(channel.id)} className="rounded-lg px-3 py-2 text-xs text-graphite-400 hover:text-red-400 hover:bg-graphite-800 transition">Выбрать доску</button>
-          )}
-          {boardId && (
-            <button onClick={() => onSelectBoard(channel.id)} className="rounded-lg px-3 py-2 text-xs text-graphite-400 hover:text-red-400 hover:bg-graphite-800 transition">Сменить доску</button>
-          )}
-          <button onClick={() => onUnlink(channel.id, channel.title)} className="rounded-lg px-3 py-2 text-xs text-graphite-400 hover:text-red-400 hover:bg-graphite-800 transition">Отключить</button>
+    <div className="flex items-center gap-3 py-2 px-1">
+      <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 bg-red-400/20 text-red-400">
+        {letter}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium text-graphite-100 truncate">{channel.title}</div>
+        <div className="text-[11px] text-graphite-500 truncate">
+          {boardId ? `Доска: ${boardId}` : 'Доска не выбрана'}
         </div>
       </div>
+      <button onClick={() => onSelectBoard(channel.id)} className="text-[11px] text-graphite-500 hover:text-lime transition shrink-0">Доска</button>
+      <button onClick={() => onUnlink(channel.id, channel.title)} className="text-[11px] text-graphite-500 hover:text-red-400 transition shrink-0">Удалить</button>
     </div>
   );
 }

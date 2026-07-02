@@ -110,6 +110,7 @@ export function PostEditorPage() {
   const [newBtnText, setNewBtnText] = useState('');
   const [newBtnUrl, setNewBtnUrl] = useState('');
   const editorRef = useRef<HTMLDivElement>(null);
+  const savedRange = useRef<Range | null>(null);
 
   const limits = LIMITS[platform];
   const filteredChannels = channels.filter((c) => c.platform === platform && c.status === 'active');
@@ -141,35 +142,39 @@ export function PostEditorPage() {
     if (editorRef.current) setBody(editorRef.current.innerHTML);
   }, []);
 
-  const execCmd = (cmd: string, val?: string) => { document.execCommand(cmd, false, val); editorRef.current?.focus(); syncBody(); };
-
-  const insertMd = (before: string, after: string) => {
+  const saveSelection = useCallback(() => {
     const sel = window.getSelection();
-    if (!sel || !editorRef.current) return;
-    const text = before + sel.toString() + after;
-    document.execCommand('insertText', false, text);
-    syncBody();
-  };
+    if (sel && sel.rangeCount > 0 && editorRef.current?.contains(sel.anchorNode)) {
+      savedRange.current = sel.getRangeAt(0).cloneRange();
+    }
+  }, []);
 
   const insertAtCursor = (text: string) => {
     const el = editorRef.current;
     if (!el) return;
     el.focus();
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) {
-      document.execCommand('insertText', false, text);
+    if (savedRange.current && el.contains(savedRange.current.startContainer)) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(savedRange.current);
+      savedRange.current.deleteContents();
+      savedRange.current.insertNode(document.createTextNode(text));
+      savedRange.current.collapse(false);
+      sel?.removeAllRanges();
+      sel?.addRange(savedRange.current);
     } else {
-      const range = sel.getRangeAt(0);
-      if (!el.contains(range.commonAncestorContainer)) {
-        range.selectNodeContents(el);
-        range.collapse(false);
-      }
-      range.deleteContents();
-      range.insertNode(document.createTextNode(text));
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
+      document.execCommand('insertText', false, text);
     }
+    syncBody();
+  };
+
+  const execCmd = (cmd: string, val?: string) => { document.execCommand(cmd, false, val); editorRef.current?.focus(); saveSelection(); syncBody(); };
+  const insertMd = (before: string, after: string) => {
+    const sel = window.getSelection();
+    if (!sel || !editorRef.current) return;
+    const text = before + sel.toString() + after;
+    document.execCommand('insertText', false, text);
+    saveSelection();
     syncBody();
   };
 
@@ -295,7 +300,7 @@ export function PostEditorPage() {
               </div>
               <div>
                 <label className="label">Текст поста</label>
-                <div className="rounded-xl border border-graphite-700/40 bg-graphite-900/40 overflow-hidden relative z-0">
+                <div className="rounded-xl border border-graphite-700/40 bg-graphite-900/40 overflow-hidden relative z-0 max-w-[640px]">
                   <div className="flex gap-0.5 border-b border-graphite-700/40 px-2 py-1.5 flex-wrap relative z-10">
                     {[
                       { cmd: 'bold', label: 'B', title: 'Жирный', cls: 'font-bold' },
@@ -312,7 +317,7 @@ export function PostEditorPage() {
                     <div className="w-px bg-graphite-700/40 mx-1" />
                     <EmojiPicker onEmoji={(e) => insertAtCursor(e)} />
                   </div>
-                  <div ref={editorRef} contentEditable suppressContentEditableWarning onInput={syncBody}
+                  <div ref={editorRef} contentEditable suppressContentEditableWarning onInput={syncBody} onMouseUp={saveSelection} onKeyUp={saveSelection}
                     className="min-h-[180px] max-h-[400px] overflow-y-auto px-4 py-3 text-sm text-graphite-200 leading-relaxed focus:outline-none relative z-0" />
                 </div>
                 <div className="flex justify-end mt-1">
