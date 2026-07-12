@@ -12,8 +12,11 @@ export function MobileNav() {
   const { pathname } = useLocation();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-graphite-800/50 bg-graphite-950/95 backdrop-blur-xl" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-      <div className="flex items-center justify-around px-2 py-1.5">
+    <nav
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-graphite-950/80 backdrop-blur-xl border-t border-white/5"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
+      <div className="flex items-center justify-around px-2 pt-2 pb-2">
         {NAV.map((item) => {
           const active = item.href === '/app'
             ? pathname === '/app' || pathname.startsWith('/app/calendar')
@@ -24,14 +27,23 @@ export function MobileNav() {
               <Link
                 key={item.href}
                 to={item.href}
-                className="flex flex-col items-center gap-0.5 px-3 py-1"
+                className="flex flex-col items-center -mt-6"
               >
-                <div className="h-10 w-10 -mt-4 rounded-full bg-lime flex items-center justify-center shadow-glow-sm transition-transform active:scale-95">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0a0b0d" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <div className="h-12 w-12 rounded-2xl bg-lime flex items-center justify-center shadow-[0_0_20px_rgba(212,255,58,0.25)] transition-all duration-200 active:scale-90 hover:shadow-[0_0_28px_rgba(212,255,58,0.35)]">
+                  <svg
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0a0b0d"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d={item.icon} />
                   </svg>
                 </div>
-                <span className="text-[10px] font-medium text-graphite-400">{item.label}</span>
+                <span className="text-[10px] font-medium text-graphite-400 mt-1">{item.label}</span>
               </Link>
             );
           }
@@ -40,10 +52,23 @@ export function MobileNav() {
             <Link
               key={item.href}
               to={item.href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-all duration-200 relative ${active ? 'text-white' : 'text-graphite-500'}`}
+              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all duration-200 relative ${
+                active ? 'text-white' : 'text-graphite-500'
+              }`}
             >
-              {active && <div className="absolute -top-1.5 w-1 h-1 rounded-full bg-lime animate-active-dot" />}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2 : 1.7} strokeLinecap="round" strokeLinejoin="round">
+              {active && (
+                <div className="absolute -top-1 w-1 h-1 rounded-full bg-lime shadow-[0_0_6px_rgba(212,255,58,0.5)]" />
+              )}
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={active ? 2 : 1.7}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d={item.icon} />
               </svg>
               <span className="text-[10px] font-medium">{item.label}</span>

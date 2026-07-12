@@ -108,27 +108,30 @@ export function ProfilePage() {
     }
   };
 
+  const selectClass = "w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/80 focus:outline-none focus:border-[#d4ff3a]/40 focus:ring-1 focus:ring-[#d4ff3a]/20 transition-colors appearance-none cursor-pointer";
+  const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/80 placeholder-white/20 focus:outline-none focus:border-[#d4ff3a]/40 focus:ring-1 focus:ring-[#d4ff3a]/20 transition-colors";
+
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[#0a0b0d]">
       <Sidebar />
       <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
-        <h1 className="font-display text-2xl font-bold text-white mb-6">Профиль</h1>
+        <h1 className="text-2xl font-bold text-white mb-8">Профиль</h1>
 
-        <div className="max-w-2xl">
-          <form onSubmit={onSave} className="card p-6 space-y-5">
-
+        <div className="max-w-2xl space-y-6">
+          {/* Profile Form */}
+          <form onSubmit={onSave} className="bg-white/[0.02] backdrop-blur-xl border border-white/5 rounded-2xl p-6 space-y-5">
             <div>
-              <label className="label">Имя</label>
-              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" />
+              <label className="block text-xs font-medium text-white/40 mb-1.5">Имя</label>
+              <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" />
             </div>
             <div>
-              <label className="label">Email</label>
-              <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <label className="block text-xs font-medium text-white/40 mb-1.5">Email</label>
+              <input className={inputClass} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="label">Часовой пояс</label>
-                <select className="input" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+                <label className="block text-xs font-medium text-white/40 mb-1.5">Часовой пояс</label>
+                <select className={selectClass} value={timezone} onChange={(e) => setTimezone(e.target.value)}>
                   <optgroup label="Россия">
                     <option value="Europe/Kaliningrad">Калининград (UTC+2)</option>
                     <option value="Europe/Moscow">Москва (UTC+3)</option>
@@ -193,62 +196,109 @@ export function ProfilePage() {
                 </select>
               </div>
               <div>
-                <label className="label">Язык</label>
-                <select className="input" value={lang} onChange={(e) => setLang(e.target.value)}>
+                <label className="block text-xs font-medium text-white/40 mb-1.5">Язык</label>
+                <select className={selectClass} value={lang} onChange={(e) => setLang(e.target.value)}>
                   <option value="ru">Русский</option>
                   <option value="en">English</option>
                 </select>
               </div>
             </div>
-            <div className="flex justify-end">
-              <button type="submit" disabled={saving} className="btn-primary">
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-2.5 rounded-xl bg-[#d4ff3a] text-[#0a0b0d] text-sm font-semibold hover:bg-[#d4ff3a]/90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none"
+              >
                 {saving ? 'Сохранение...' : 'Сохранить'}
               </button>
             </div>
           </form>
 
-          <div className="card mt-6 p-6">
-            <h2 className="font-display text-lg font-semibold text-white mb-2">Смена пароля</h2>
+          {/* Change Password */}
+          <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 rounded-2xl p-6">
+            <h2 className="text-base font-semibold text-white mb-4">Смена пароля</h2>
             <ChangePasswordForm />
           </div>
 
-          <div className="card mt-6 p-6">
-            <h2 className="font-display text-lg font-semibold text-white mb-3">MTProto Аналитика</h2>
-            <p className="text-xs text-graphite-400 mb-4">Подключение для сбора просмотров, реакций и репостов</p>
+          {/* MTProto Section */}
+          <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 rounded-2xl p-6">
+            <h2 className="text-base font-semibold text-white mb-1">MTProto Аналитика</h2>
+            <p className="text-xs text-white/30 mb-4">Подключение для сбора просмотров, реакций и репостов</p>
             {mtprotoStatus === null ? (
-              <div className="animate-pulse h-6 w-48 rounded bg-graphite-800" />
+              <div className="animate-pulse h-6 w-48 rounded-xl bg-white/5" />
             ) : (
               <>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={`h-3 w-3 rounded-full ${mtprotoStatus.authorized ? 'bg-green-400' : mtprotoStatus.configured ? 'bg-yellow-400' : 'bg-red-400'}`} />
-                  <span className="text-sm text-graphite-300">
+                  <div className={`h-3 w-3 rounded-full ${mtprotoStatus.authorized ? 'bg-emerald-400' : mtprotoStatus.configured ? 'bg-amber-400' : 'bg-red-400'}`} />
+                  <span className="text-sm text-white/60">
                     {mtprotoStatus.authorized ? 'MTProto подключён' : mtprotoStatus.configured ? 'API ключи настроены' : 'Не настроен'}
                   </span>
                   {mtprotoStatus.authorized && (
-                    <button onClick={doMtprotoLogout} className="text-xs text-red-400 hover:text-red-300 ml-auto">Выйти</button>
+                    <button onClick={doMtprotoLogout} className="text-xs text-red-400 hover:text-red-300 ml-auto transition-colors">Выйти</button>
                   )}
                 </div>
                 {!mtprotoStatus.authorized && (
                   <div className="space-y-3">
                     {authStep === null && (
                       <div className="flex gap-2">
-                        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+79001234567" className="input flex-1" onKeyDown={(e) => e.key === 'Enter' && sendPhone()} />
-                        <button onClick={sendPhone} disabled={authLoading || !phone.trim()} className="btn-primary text-sm">{authLoading ? '...' : 'Код'}</button>
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="+79001234567"
+                          className={`${inputClass} flex-1`}
+                          onKeyDown={(e) => e.key === 'Enter' && sendPhone()}
+                        />
+                        <button
+                          onClick={sendPhone}
+                          disabled={authLoading || !phone.trim()}
+                          className="px-4 py-2.5 rounded-xl bg-[#d4ff3a] text-[#0a0b0d] text-sm font-semibold hover:bg-[#d4ff3a]/90 active:scale-[0.98] transition-all disabled:opacity-40 flex-shrink-0"
+                        >
+                          {authLoading ? '...' : 'Код'}
+                        </button>
                       </div>
                     )}
                     {authStep === 'code' && (
                       <div className="flex gap-2">
-                        <input type="text" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Код из Telegram" className="input flex-1" autoFocus onKeyDown={(e) => e.key === 'Enter' && sendCode()} />
-                        <button onClick={sendCode} disabled={authLoading || !code.trim()} className="btn-primary text-sm">{authLoading ? '...' : 'ОК'}</button>
+                        <input
+                          type="text"
+                          value={code}
+                          onChange={(e) => setCode(e.target.value)}
+                          placeholder="Код из Telegram"
+                          className={`${inputClass} flex-1`}
+                          autoFocus
+                          onKeyDown={(e) => e.key === 'Enter' && sendCode()}
+                        />
+                        <button
+                          onClick={sendCode}
+                          disabled={authLoading || !code.trim()}
+                          className="px-4 py-2.5 rounded-xl bg-[#d4ff3a] text-[#0a0b0d] text-sm font-semibold hover:bg-[#d4ff3a]/90 active:scale-[0.98] transition-all disabled:opacity-40 flex-shrink-0"
+                        >
+                          {authLoading ? '...' : 'ОК'}
+                        </button>
                       </div>
                     )}
                     {authStep === 'password' && (
                       <div className="flex gap-2">
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль 2FA" className="input flex-1" autoFocus onKeyDown={(e) => e.key === 'Enter' && sendPassword()} />
-                        <button onClick={sendPassword} disabled={authLoading || !password.trim()} className="btn-primary text-sm">{authLoading ? '...' : 'ОК'}</button>
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Пароль 2FA"
+                          className={`${inputClass} flex-1`}
+                          autoFocus
+                          onKeyDown={(e) => e.key === 'Enter' && sendPassword()}
+                        />
+                        <button
+                          onClick={sendPassword}
+                          disabled={authLoading || !password.trim()}
+                          className="px-4 py-2.5 rounded-xl bg-[#d4ff3a] text-[#0a0b0d] text-sm font-semibold hover:bg-[#d4ff3a]/90 active:scale-[0.98] transition-all disabled:opacity-40 flex-shrink-0"
+                        >
+                          {authLoading ? '...' : 'ОК'}
+                        </button>
                       </div>
                     )}
-                    {authMessage && <p className="text-xs text-green-400">{authMessage}</p>}
+                    {authMessage && <p className="text-xs text-emerald-400">{authMessage}</p>}
                     {authError && <p className="text-xs text-red-400">{authError}</p>}
                   </div>
                 )}
@@ -256,9 +306,10 @@ export function ProfilePage() {
             )}
           </div>
 
-          <div className="card mt-6 p-6 border-red-500/20">
-            <h2 className="font-display text-lg font-semibold text-red-400 mb-2">Опасная зона</h2>
-            <p className="text-sm text-graphite-400 mb-4">Удаление аккаунта необратимо. Все данные будут утеряны.</p>
+          {/* Danger Zone */}
+          <div className="bg-white/[0.02] backdrop-blur-xl border border-red-500/10 rounded-2xl p-6">
+            <h2 className="text-base font-semibold text-red-400 mb-1">Опасная зона</h2>
+            <p className="text-sm text-white/30 mb-4">Удаление аккаунта необратимо. Все данные будут утеряны.</p>
             <DeleteAccountForm />
           </div>
         </div>
@@ -288,17 +339,23 @@ function ChangePasswordForm() {
     }
   };
 
+  const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/80 placeholder-white/20 focus:outline-none focus:border-[#d4ff3a]/40 focus:ring-1 focus:ring-[#d4ff3a]/20 transition-colors";
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div>
-        <label className="label">Текущий пароль</label>
-        <input className="input" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} required />
+        <label className="block text-xs font-medium text-white/40 mb-1.5">Текущий пароль</label>
+        <input className={inputClass} type="password" value={current} onChange={(e) => setCurrent(e.target.value)} required />
       </div>
       <div>
-        <label className="label">Новый пароль</label>
-        <input className="input" type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} required minLength={8} />
+        <label className="block text-xs font-medium text-white/40 mb-1.5">Новый пароль</label>
+        <input className={inputClass} type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} required minLength={8} />
       </div>
-      <button type="submit" disabled={saving} className="btn-primary">
+      <button
+        type="submit"
+        disabled={saving}
+        className="px-6 py-2.5 rounded-xl bg-[#d4ff3a] text-[#0a0b0d] text-sm font-semibold hover:bg-[#d4ff3a]/90 active:scale-[0.98] transition-all disabled:opacity-40"
+      >
         {saving ? '...' : 'Изменить пароль'}
       </button>
     </form>
@@ -323,10 +380,12 @@ function DeleteAccountForm() {
     }
   };
 
+  const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/80 placeholder-white/20 focus:outline-none focus:border-red-500/40 focus:ring-1 focus:ring-red-500/20 transition-colors";
+
   return (
     <div className="space-y-3">
       <input
-        className="input"
+        className={inputClass}
         placeholder='Введите "УДАЛИТЬ" для подтверждения'
         value={confirm}
         onChange={(e) => setConfirm(e.target.value)}
@@ -334,7 +393,7 @@ function DeleteAccountForm() {
       <button
         onClick={onDelete}
         disabled={confirm !== 'УДАЛИТЬ' || saving}
-        className="rounded-xl bg-red-500/20 px-5 py-3 text-sm font-semibold text-red-400 transition hover:bg-red-500/30 disabled:opacity-40"
+        className="px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-sm font-semibold text-red-400 transition-all hover:bg-red-500/20 disabled:opacity-40 disabled:pointer-events-none"
       >
         {saving ? 'Удаление...' : 'Удалить аккаунт'}
       </button>

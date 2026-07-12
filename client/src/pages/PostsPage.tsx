@@ -10,9 +10,9 @@ type Filter = 'all' | 'scheduled' | 'published' | 'draft' | 'failed';
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   queued: { label: 'Ожидает', color: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10' },
   in_progress: { label: 'Отправляется', color: 'text-blue-400 border-blue-400/30 bg-blue-400/10' },
-  published: { label: 'Опубликован', color: 'text-lime border-lime/30 bg-lime/10' },
+  published: { label: 'Опубликован', color: 'text-[#d4ff3a] border-[#d4ff3a]/30 bg-[#d4ff3a]/10' },
   failed: { label: 'Ошибка', color: 'text-red-400 border-red-400/30 bg-red-400/10' },
-  draft: { label: 'Черновик', color: 'text-graphite-400 border-graphite-600 bg-graphite-800' },
+  draft: { label: 'Черновик', color: 'text-white/40 border-white/10 bg-white/5' },
 };
 
 const FILTERS: { key: Filter; label: string }[] = [
@@ -178,32 +178,32 @@ export function PostsPage() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[#0a0b0d]">
       <Sidebar />
       <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="font-display text-2xl font-bold text-white">Посты</h1>
-            <p className="text-xs text-graphite-500 mt-1">{posts.length} всего</p>
+            <p className="text-xs text-white/40 mt-1">{posts.length} всего</p>
           </div>
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex gap-1 rounded-xl border border-graphite-700 bg-graphite-850 p-0.5">
+            <div className="hidden sm:flex gap-1 rounded-2xl border border-white/10 bg-white/[0.02] backdrop-blur-xl p-0.5">
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-lg transition ${viewMode === 'list' ? 'bg-graphite-700 text-white' : 'text-graphite-400 hover:text-graphite-200'}`}
+                className={`p-1.5 rounded-xl transition-all duration-200 ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
                 title="Список"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition ${viewMode === 'grid' ? 'bg-graphite-700 text-white' : 'text-graphite-400 hover:text-graphite-200'}`}
+                className={`p-1.5 rounded-xl transition-all duration-200 ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}`}
                 title="Сетка"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
               </button>
             </div>
-            <button onClick={() => navigate('/app/posts/new')} className="btn-primary text-sm">+ Новый пост</button>
+            <button onClick={() => navigate('/app/posts/new')} className="bg-[#d4ff3a] text-[#0a0b0d] font-semibold px-4 py-2 rounded-2xl text-sm hover:bg-[#d4ff3a]/90 transition-all duration-200">+ Новый пост</button>
           </div>
         </div>
 
@@ -213,22 +213,22 @@ export function PostsPage() {
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`rounded-xl px-4 py-2 text-sm transition ${
+                className={`rounded-2xl px-4 py-2 text-sm transition-all duration-200 ${
                   filter === f.key
-                    ? 'bg-lime/15 text-lime border border-lime/30'
-                    : 'border border-graphite-700 bg-graphite-850 text-graphite-300 hover:border-graphite-600'
+                    ? 'bg-[#d4ff3a]/15 text-[#d4ff3a] border border-[#d4ff3a]/30'
+                    : 'border border-white/10 bg-white/[0.02] backdrop-blur-xl text-white/40 hover:border-white/20'
                 }`}
               >
                 {f.label}
-                {f.key === 'all' && <span className="ml-1.5 text-graphite-500">{posts.length}</span>}
+                {f.key === 'all' && <span className="ml-1.5 text-white/30">{posts.length}</span>}
               </button>
             ))}
           </div>
           {channels.length > 0 && (
-            <select className="input max-w-[200px] text-sm py-2" value={channelFilter} onChange={(e) => setChannelFilter(e.target.value)}>
-              <option value="all">Все каналы</option>
+            <select className="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-2 text-sm text-white max-w-[200px] focus:outline-none focus:border-[#d4ff3a]/30 transition-all duration-200" value={channelFilter} onChange={(e) => setChannelFilter(e.target.value)}>
+              <option value="all" className="bg-[#0a0b0d]">Все каналы</option>
               {channels.map((ch) => (
-                <option key={ch.id} value={ch.id}>{ch.title}</option>
+                <option key={ch.id} value={ch.id} className="bg-[#0a0b0d]">{ch.title}</option>
               ))}
             </select>
           )}
@@ -237,25 +237,25 @@ export function PostsPage() {
         {loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="card p-5 animate-pulse">
+              <div key={i} className="bg-white/[0.02] backdrop-blur-xl border border-white/5 rounded-2xl p-5 animate-pulse">
                 <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-graphite-800" />
+                  <div className="h-10 w-10 rounded-xl bg-white/5" />
                   <div className="flex-1 space-y-2">
-                    <div className="h-4 w-48 rounded bg-graphite-800" />
-                    <div className="h-3 w-32 rounded bg-graphite-800" />
+                    <div className="h-4 w-48 rounded bg-white/5" />
+                    <div className="h-3 w-32 rounded bg-white/5" />
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="card p-12 text-center">
+          <div className="bg-white/[0.02] backdrop-blur-xl border border-white/5 rounded-2xl p-12 text-center">
             <div className="text-5xl mb-4">📝</div>
             <h2 className="font-display text-xl font-bold text-white mb-2">
               {filter === 'all' && channelFilter === 'all' ? 'Нет постов' : 'Нет постов с фильтром'}
             </h2>
-            <p className="text-sm text-graphite-300 mb-6">Создайте первый пост или загрузите массово из Excel.</p>
-            <button onClick={() => navigate('/app/posts/new')} className="btn-primary">Создать пост</button>
+            <p className="text-sm text-white/40 mb-6">Создайте первый пост или загрузите массово из Excel.</p>
+            <button onClick={() => navigate('/app/posts/new')} className="bg-[#d4ff3a] text-[#0a0b0d] font-semibold px-6 py-3 rounded-2xl hover:bg-[#d4ff3a]/90 transition-all duration-200">Создать пост</button>
           </div>
         ) : (
           <div className={viewMode === 'grid' ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
@@ -270,12 +270,12 @@ export function PostsPage() {
                 <div
                   key={post.id}
                   onClick={() => navigate(`/app/posts/${post.id}`)}
-                  className="card p-5 hover:border-graphite-600 hover:bg-graphite-850/50 transition cursor-pointer group"
+                  className="bg-white/[0.02] backdrop-blur-xl border border-white/5 rounded-2xl p-5 hover:border-[#d4ff3a]/20 hover:bg-white/[0.04] transition-all duration-200 cursor-pointer group"
                 >
                   <div className="flex items-start gap-4">
                     {/* Media thumbnail */}
                     {post.media.length > 0 && (
-                      <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-graphite-800">
+                      <div className="shrink-0 w-16 h-16 rounded-xl overflow-hidden bg-white/5">
                         {post.media[0].kind === 'video' ? (
                           <div className="w-full h-full flex items-center justify-center text-2xl">🎬</div>
                         ) : (
@@ -297,20 +297,20 @@ export function PostsPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`chip text-[10px] ${statusInfo.color}`}>{statusInfo.label}</span>
-                        {scheduledDate && <span className="text-xs text-graphite-500">{scheduledDate}</span>}
+                        <span className={`px-2 py-1 rounded-xl text-[10px] border ${statusInfo.color}`}>{statusInfo.label}</span>
+                        {scheduledDate && <span className="text-xs text-white/30">{scheduledDate}</span>}
                         {post.media.length > 0 && (
-                          <span className="text-[10px] text-graphite-500">📎 {post.media.length}</span>
+                          <span className="text-[10px] text-white/30">📎 {post.media.length}</span>
                         )}
                       </div>
                       {post.title && <h3 className="font-semibold text-white text-sm mb-0.5 truncate">{post.title}</h3>}
-                      <p className="text-sm text-graphite-300 line-clamp-2">{post.body}</p>
+                      <p className="text-sm text-white/60 line-clamp-2">{post.body}</p>
 
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {post.publications.map((pub) => {
                           const pubStatus = STATUS_LABELS[pub.status] || STATUS_LABELS.draft;
                           return (
-                            <span key={pub.id} className={`chip text-[10px] ${pubStatus.color}`}>
+                            <span key={pub.id} className={`px-2 py-1 rounded-xl text-[10px] border ${pubStatus.color}`}>
                               {pub.socialAccount.title}
                               {pub.status === 'published' && ' ✓'}
                               {pub.status === 'failed' && ' ✗'}
@@ -320,21 +320,21 @@ export function PostsPage() {
                       </div>
                     </div>
 
-                    <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition">
+                    <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
                         onClick={(e) => { e.stopPropagation(); setPreviewPost(post); }}
-                        className="rounded-lg px-2 py-1.5 text-xs text-graphite-400 hover:text-lime hover:bg-graphite-800 transition"
+                        className="rounded-xl px-2 py-1.5 text-xs text-white/40 hover:text-[#d4ff3a] hover:bg-white/10 transition-all duration-200"
                         title="Предпросмотр"
                       >👁</button>
                       <button
                         onClick={(e) => { e.stopPropagation(); navigate(`/app/posts/${post.id}`); }}
-                        className="rounded-lg px-2 py-1.5 text-xs text-graphite-400 hover:text-lime hover:bg-graphite-800 transition"
+                        className="rounded-xl px-2 py-1.5 text-xs text-white/40 hover:text-[#d4ff3a] hover:bg-white/10 transition-all duration-200"
                         title="Редактировать"
                       >✏️</button>
                       <button
                         onClick={(e) => handleDelete(e, post.id)}
                         disabled={deleting === post.id}
-                        className="rounded-lg px-2 py-1.5 text-xs text-graphite-400 hover:text-red-400 hover:bg-graphite-800 transition disabled:opacity-50"
+                        className="rounded-xl px-2 py-1.5 text-xs text-white/40 hover:text-red-400 hover:bg-white/10 transition-all duration-200 disabled:opacity-50"
                         title="Удалить"
                       >{deleting === post.id ? '...' : '🗑'}</button>
                     </div>
