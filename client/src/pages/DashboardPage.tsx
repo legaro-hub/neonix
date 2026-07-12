@@ -9,6 +9,7 @@ import { EmptyState } from '../components/EmptyState';
 import { Skeleton, SkeletonList } from '../components/Skeleton';
 import { PlatformBadge } from '../components/Badge';
 import { Avatar } from '../components/Avatar';
+import { GlowOrb } from '../components/GlowOrb';
 
 export function DashboardPage() {
   const { user, setUser } = useAuth();
@@ -93,9 +94,10 @@ export function DashboardPage() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
+      <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10 relative">
+        <GlowOrb color="#d4ff3a" size={300} blur={150} className="top-0 right-0 opacity-20" />
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 relative z-10">
           <h1 className="text-2xl font-bold text-white">{greeting}, {user?.name || 'коллега'}</h1>
           <p className="mt-1 text-sm text-graphite-500">
             {active.length === 0

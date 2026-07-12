@@ -70,7 +70,7 @@ export function Sidebar() {
   };
 
   return (
-    <aside className={`hidden shrink-0 lg:flex lg:flex-col lg:sticky lg:top-0 lg:h-screen transition-all duration-300 ${w} border-r border-graphite-800/30`}>
+    <aside className={`hidden shrink-0 lg:flex lg:flex-col lg:sticky lg:top-0 lg:h-screen transition-all duration-300 ${w} border-r border-white/5 bg-graphite-950/80 backdrop-blur-xl`}>
       {/* Header */}
       <div className="flex h-14 items-center border-b border-graphite-800/30 px-4">
         {!collapsed && (
