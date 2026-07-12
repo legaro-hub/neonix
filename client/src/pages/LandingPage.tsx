@@ -38,7 +38,7 @@ export function LandingPage() {
     <div className="scroll-snap-container">
       <Navbar />
 
-      {/* ===== HERO ===== */}
+      {/* HERO */}
       <section className="scroll-snap-section relative flex items-center overflow-hidden">
         <AuroraHero />
         <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(212,255,58,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(212,255,58,0.015) 1px, transparent 1px)', backgroundSize: '48px 48px', opacity: 0.4 }} />
@@ -99,7 +99,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ===== STATS ===== */}
+      {/* STATS */}
       <section className="scroll-snap-section relative border-y border-graphite-800/50 overflow-hidden flex items-center">
         <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(212,255,58,0.01) 1px, transparent 1px), linear-gradient(90deg, rgba(212,255,58,0.01) 1px, transparent 1px)', backgroundSize: '32px 32px', opacity: 0.3 }} />
         <div className="container-app relative grid grid-cols-2 gap-6 py-16 text-center sm:grid-cols-4 w-full">
@@ -118,7 +118,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ===== FEATURES ===== */}
+      {/* FEATURES */}
       <section id="features" className="scroll-snap-section relative py-24 sm:py-32 flex items-center">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full opacity-20" style={{ background: 'radial-gradient(circle, rgba(0,229,255,0.15) 0%, transparent 60%)', filter: 'blur(80px)' }} />
         <div className="container-app relative z-10 w-full">
@@ -140,9 +140,9 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ===== STEPS ===== */}
+      {/* STEPS */}
       <section id="how" className="scroll-snap-section relative border-y border-graphite-800/50 overflow-hidden flex items-center">
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(at 40% 20%, rgba(212,255,58,0.04) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(0,229,255,0.03) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(139,92,246,0.02) 0px, transparent 50%)', backgroundColor: '#0a0b0d' }} />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(at 40% 20%, rgba(212,255,58,0.04) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(0,229,255,0.03) 0px, transparent 50%)', backgroundColor: '#0a0b0d' }} />
         <div className="container-app relative z-10 py-24 sm:py-32 w-full">
           <div className="mx-auto max-w-2xl text-center mb-16">
             <h2 className="font-display text-4xl font-bold text-white sm:text-5xl">
@@ -162,7 +162,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ===== REVIEWS ===== */}
+      {/* REVIEWS */}
       <section className="scroll-snap-section relative py-24 sm:py-32 flex items-center">
         <div className="container-app w-full">
           <div className="mx-auto max-w-2xl text-center mb-16">
@@ -187,7 +187,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ===== PRICING ===== */}
+      {/* PRICING */}
       <section id="pricing" className="scroll-snap-section relative py-24 sm:py-32 overflow-hidden flex items-center">
         <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[400px] h-[400px] rounded-full opacity-15" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 60%)', filter: 'blur(80px)' }} />
         <div className="container-app relative z-10 w-full">
@@ -197,7 +197,7 @@ export function LandingPage() {
           </div>
           <div className="grid gap-8 lg:grid-cols-3">
             {PLANS.map((p) => (
-              <div key={p.name} className={`rounded-2xl border backdrop-blur-xl p-8 flex flex-col transition-all hover:-translate-y-1 ${
+              <div key={p.name} className={`rounded-2xl border backdrop-blur-xl p-8 flex flex-col transition-all hover:-translate-y-1 relative ${
                 p.highlight ? 'border-lime/30 bg-lime/[0.03]' : 'border-white/5 bg-white/[0.02]'
               }`} style={p.highlight ? { boxShadow: '0 0 40px rgba(212,255,58,0.08), 0 0 80px rgba(212,255,58,0.04)' } : { boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}>
                 {p.highlight && <span className="absolute -top-3 left-8 rounded-full bg-lime px-4 py-1 text-xs font-bold text-graphite-950">Популярный</span>}
@@ -224,7 +224,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ===== CTA ===== */}
+      {/* CTA */}
       <section className="scroll-snap-section container-app py-24 flex items-center">
         <div className="relative overflow-hidden rounded-3xl border border-white/5 p-12 text-center sm:p-20 w-full" style={{ background: 'radial-gradient(at 40% 20%, rgba(212,255,58,0.04) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(0,229,255,0.03) 0px, transparent 50%), #0d0f12' }}>
           <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(212,255,58,0.01) 1px, transparent 1px), linear-gradient(90deg, rgba(212,255,58,0.01) 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.3 }} />
@@ -243,15 +243,12 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ===== FOOTER ===== */}
+      {/* FOOTER */}
       <footer className="border-t border-graphite-800/50 bg-graphite-950">
         <div className="container-app grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div className="sm:col-span-2 lg:col-span-1">
             <Logo />
             <p className="mt-4 max-w-xs text-sm text-graphite-400">Планирование и автопостинг для контент-мейкеров.</p>
-            <div className="mt-4 flex items-center gap-2 text-xs text-graphite-500">
-              <span className="h-1.5 w-1.5 rounded-full bg-lime animate-pulse" /> Всё работает
-            </div>
           </div>
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-graphite-300">Продукт</h4>
@@ -277,9 +274,7 @@ export function LandingPage() {
           </div>
         </div>
         <div className="border-t border-graphite-800">
-          <div className="container-app py-6 text-center text-xs text-graphite-500">
-            © 2026 Neonix. Все права защищены.
-          </div>
+          <div className="container-app py-6 text-center text-xs text-graphite-500">© 2026 Neonix. Все права защищены.</div>
         </div>
       </footer>
     </div>

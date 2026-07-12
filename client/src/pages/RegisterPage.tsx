@@ -20,6 +20,7 @@ export function RegisterPage() {
 
   const [captcha, setCaptcha] = useState<{ id: string; question: string } | null>(null);
   const [captchaSolved, setCaptchaSolved] = useState(false);
+  const [captchaAnswer, setCaptchaAnswer] = useState(0);
   const [captchaLoading, setCaptchaLoading] = useState(true);
 
   const loadCaptcha = async () => {
@@ -54,7 +55,7 @@ export function RegisterPage() {
     }
     setLoading(true);
     try {
-      await register(email, password, name || undefined, captcha.id, 1, promoCode || undefined);
+      await register(email, password, name || undefined, captcha.id, captchaAnswer, promoCode || undefined);
       navigate('/app', { replace: true });
     } catch (err) {
       if (err instanceof HttpError && err.status === 400) {
@@ -186,7 +187,7 @@ export function RegisterPage() {
             <CreativeCaptcha
               question={captcha.question}
               id={captcha.id}
-              onAnswer={() => setCaptchaSolved(true)}
+              onAnswer={(ans) => { setCaptchaSolved(true); setCaptchaAnswer(ans); }}
               onRefresh={loadCaptcha}
             />
           ) : (
