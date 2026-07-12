@@ -104,10 +104,6 @@ export default {
           '0%, 100%': { boxShadow: '0 0 5px currentColor, 0 0 10px currentColor' },
           '50%': { boxShadow: '0 0 10px currentColor, 0 0 20px currentColor, 0 0 40px currentColor' },
         },
-        'scan': {
-          from: { transform: 'translateY(-100vh)' },
-          to: { transform: 'translateY(100vh)' },
-        },
       },
       animation: {
         floaty: 'floaty 6s ease-in-out infinite',
@@ -124,7 +120,6 @@ export default {
         orbit: 'orbit 20s linear infinite',
         morph: 'morph 8s ease-in-out infinite',
         'neon-pulse': 'neon-pulse 2s ease-in-out infinite',
-        scan: 'scan 8s linear infinite',
       },
     },
   },

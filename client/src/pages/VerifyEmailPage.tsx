@@ -30,7 +30,7 @@ export function VerifyEmailPage() {
       })
       .catch((err) => {
         setStatus('error');
-        setErrorMsg(err.message || 'Не удалось подтвердить email. Попробуйте запросить новую ссылку.');
+        setErrorMsg(err.message || 'Не удалось подтвердить email.');
       });
   }, [token]);
 
@@ -45,7 +45,8 @@ export function VerifyEmailPage() {
           </Link>
         }
       >
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-6 text-center">
+        <div className="card-glass rounded-2xl p-8 text-center animate-scale-in">
+          <div className="mb-4 text-5xl">🔗</div>
           <p className="text-sm text-red-300">Отсутствует токен подтверждения.</p>
         </div>
       </AuthLayout>
@@ -59,8 +60,10 @@ export function VerifyEmailPage() {
         subtitle="Проверяем вашу ссылку..."
         footer={<span className="text-sm text-graphite-500">Пожалуйста, подождите</span>}
       >
-        <div className="rounded-xl border border-graphite-700 bg-graphite-900 p-6 text-center">
-          <div className="mb-4 text-4xl">⏳</div>
+        <div className="card-glass rounded-2xl p-8 text-center">
+          <div className="mb-4 flex justify-center">
+            <div className="h-12 w-12 rounded-full border-2 border-graphite-700 border-t-lime animate-spin" />
+          </div>
           <p className="text-sm text-graphite-300">Проверка ссылки подтверждения...</p>
         </div>
       </AuthLayout>
@@ -71,16 +74,16 @@ export function VerifyEmailPage() {
     return (
       <AuthLayout
         title="Email подтверждён"
-        subtitle="Ваш аккаунт активирован. Теперь доступны все функции."
+        subtitle="Ваш аккаунт активирован."
         footer={
           <Link to="/login" className="font-semibold text-lime hover:underline">
             Войти в кабинет
           </Link>
         }
       >
-        <div className="rounded-xl border border-lime/20 bg-lime/5 p-6 text-center">
-          <div className="mb-4 text-4xl">✅</div>
-          <p className="text-sm text-graphite-300">
+        <div className="card-glass rounded-2xl p-8 text-center animate-scale-in">
+          <div className="mb-4 text-5xl">✅</div>
+          <p className="text-sm text-graphite-300 leading-relaxed">
             Email подтверждён! Теперь вы можете войти и начать использовать Neonix.
           </p>
         </div>
@@ -98,8 +101,8 @@ export function VerifyEmailPage() {
         </Link>
       }
     >
-      <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-6 text-center">
-        <div className="mb-4 text-4xl">❌</div>
+      <div className="card-glass rounded-2xl p-8 text-center animate-scale-in">
+        <div className="mb-4 text-5xl">❌</div>
         <p className="text-sm text-red-300">{errorMsg}</p>
       </div>
     </AuthLayout>

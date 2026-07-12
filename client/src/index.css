@@ -254,11 +254,6 @@
   to { transform: scale(1); opacity: 1; }
 }
 
-@keyframes scan {
-  0% { transform: translateY(-100vh); }
-  100% { transform: translateY(100vh); }
-}
-
 @keyframes rotate-gradient {
   0% { --angle: 0deg; }
   100% { --angle: 360deg; }
@@ -475,18 +470,16 @@
 .stagger > *:nth-child(9) { animation-delay: 0.45s; }
 .stagger > *:nth-child(10) { animation-delay: 0.5s; }
 
-/* === Scan line === */
-.scan-line::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(212,255,58,0.06), transparent);
-  animation: scan 8s linear infinite;
-  pointer-events: none;
-  z-index: 100;
+/* === Scroll Snap === */
+.scroll-snap-container {
+  scroll-snap-type: y proximity;
+  overflow-y: auto;
+  height: 100vh;
+  scroll-behavior: smooth;
+}
+.scroll-snap-section {
+  scroll-snap-align: start;
+  min-height: 100vh;
 }
 
 /* === Platform pill === */
