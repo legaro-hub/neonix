@@ -3,16 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { Sidebar } from '../components/Sidebar';
 import { api, HttpError } from '../lib/api';
+import { useToast } from '../lib/toast';
 
 export function ProfilePage() {
   const { user, setUser } = useAuth();
+  const { toast } = useToast();
   const [name, setName] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
   const [timezone, setTimezone] = useState(user?.timezone ?? 'Europe/Moscow');
   const [lang, setLang] = useState(user?.language ?? 'ru');
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
 
   // MTProto state
   const [mtprotoStatus, setMtprotoStatus] = useState<{ authorized: boolean; configured: boolean; pendingStep: string | null } | null>(null);
@@ -97,14 +97,12 @@ export function ProfilePage() {
   const onSave = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setMsg(null);
-    setErr(null);
     try {
       const updated = await api.updateProfile({ name, email, timezone, language: lang });
       setUser(updated);
-      setMsg('Профиль обновлён');
+      toast('success', 'Профиль обновлён');
     } catch (e) {
-      setErr(e instanceof HttpError ? e.message : 'Ошибка сохранения');
+      toast('error', e instanceof HttpError ? e.message : 'Ошибка сохранения');
     } finally {
       setSaving(false);
     }
@@ -118,8 +116,6 @@ export function ProfilePage() {
 
         <div className="max-w-2xl">
           <form onSubmit={onSave} className="card p-6 space-y-5">
-            {msg && <div className="rounded-xl border border-lime/40 bg-lime/10 px-4 py-3 text-sm text-lime">{msg}</div>}
-            {err && <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{err}</div>}
 
             <div>
               <label className="label">Имя</label>
@@ -272,24 +268,21 @@ export function ProfilePage() {
 }
 
 function ChangePasswordForm() {
+  const { toast } = useToast();
   const [current, setCurrent] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setMsg(null);
-    setErr(null);
     try {
       await api.changePassword({ currentPassword: current, newPassword: newPwd });
-      setMsg('Пароль изменён');
+      toast('success', 'Пароль изменён');
       setCurrent('');
       setNewPwd('');
     } catch (e) {
-      setErr(e instanceof HttpError ? e.message : 'Ошибка');
+      toast('error', e instanceof HttpError ? e.message : 'Ошибка');
     } finally {
       setSaving(false);
     }
@@ -297,8 +290,6 @@ function ChangePasswordForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      {msg && <div className="rounded-xl border border-lime/40 bg-lime/10 px-4 py-3 text-sm text-lime">{msg}</div>}
-      {err && <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{err}</div>}
       <div>
         <label className="label">Текущий пароль</label>
         <input className="input" type="password" value={current} onChange={(e) => setCurrent(e.target.value)} required />

@@ -2,12 +2,14 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { api } from '../lib/api';
 import type { NotificationSettings } from '../lib/types';
+import Modal from '../components/Modal';
+import { useToast } from '../lib/toast';
 
 export function SettingsPage() {
+  const { toast } = useToast();
   const [settings, setSettings] = useState<NotificationSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
   const [titleClicks, setTitleClicks] = useState(0);
   const [titleTimer, setTitleTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [showPostpinConfig, setShowPostpinConfig] = useState(false);
@@ -31,12 +33,11 @@ export function SettingsPage() {
     e.preventDefault();
     if (!settings) return;
     setSaving(true);
-    setMsg(null);
     try {
       await api.updateNotifications(settings as unknown as Record<string, unknown>);
-      setMsg('Настройки сохранены');
+      toast('success', 'Настройки сохранены');
     } catch {
-      /* ignore */
+      toast('error', 'Ошибка сохранения');
     } finally {
       setSaving(false);
     }
@@ -87,10 +88,11 @@ export function SettingsPage() {
 
         <div className="max-w-2xl space-y-6">
           <form onSubmit={onSave} className="card p-6 space-y-6">
-            {msg && <div className="rounded-xl border border-lime/40 bg-lime/10 px-4 py-3 text-sm text-lime">{msg}</div>}
 
             <div>
-              <h2 className="font-display text-lg font-semibold text-white mb-4">Уведомления по email</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <span className="text-lg">📧</span> Уведомления по email
+              </h2>
               <div className="space-y-3">
                 {[
                   { key: 'emailOnPublish' as const, label: 'Пост опубликован' },
@@ -117,7 +119,9 @@ export function SettingsPage() {
             </div>
 
             <div>
-              <h2 className="font-display text-lg font-semibold text-white mb-4">In-app уведомления</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <span className="text-lg">🔔</span> In-app уведомления
+              </h2>
               <div className="space-y-3">
                 {[
                   { key: 'inAppOnPublish' as const, label: 'Пост опубликован' },
@@ -143,7 +147,9 @@ export function SettingsPage() {
             </div>
 
             <div>
-              <h2 className="font-display text-lg font-semibold text-white mb-4">Дайджест</h2>
+              <h2 className="font-display text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <span className="text-lg">📰</span> Дайджест
+              </h2>
               <label className="flex items-center gap-3 cursor-pointer mb-4">
                 <div
                   onClick={() => toggle('digestEnabled')}
@@ -201,22 +207,20 @@ export function SettingsPage() {
           </form>
         </div>
 
-        {showPostpinConfig && (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm" onClick={() => setShowPostpinConfig(false)}>
-            <div className="card w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
-              <h3 className="font-display text-lg font-bold text-white mb-4">PostPin Email</h3>
-              <div>
-                <label className="label">Email</label>
-                <input className="input text-sm" value={postpinEmail} onChange={(e) => setPostpinEmail(e.target.value)} placeholder="your@email.com" />
-                <p className="text-[10px] text-graphite-500 mt-1">Email от аккаунта PostPin</p>
-              </div>
-              <div className="flex gap-2 mt-4">
-                <button onClick={handleSavePostpin} disabled={postpinSaving} className="btn-primary text-sm flex-1">{postpinSaving ? 'Сохранение...' : 'Сохранить'}</button>
-                <button onClick={() => setShowPostpinConfig(false)} className="btn-ghost text-sm">Закрыть</button>
-              </div>
+        <Modal open={showPostpinConfig} onClose={() => setShowPostpinConfig(false)}>
+          <div className="card p-6">
+            <h3 className="font-display text-lg font-bold text-white mb-4">PostPin Email</h3>
+            <div>
+              <label className="label">Email</label>
+              <input className="input text-sm" value={postpinEmail} onChange={(e) => setPostpinEmail(e.target.value)} placeholder="your@email.com" />
+              <p className="text-[10px] text-graphite-500 mt-1">Email от аккаунта PostPin</p>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <button onClick={handleSavePostpin} disabled={postpinSaving} className="btn-primary text-sm flex-1">{postpinSaving ? 'Сохранение...' : 'Сохранить'}</button>
+              <button onClick={() => setShowPostpinConfig(false)} className="btn-ghost text-sm">Закрыть</button>
             </div>
           </div>
-        )}
+        </Modal>
       </main>
     </div>
   );

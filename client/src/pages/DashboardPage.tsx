@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { api, HttpError } from '../lib/api';
 import { Sidebar } from '../components/Sidebar';
+import Modal from '../components/Modal';
+import { StatCard } from '../components/StatCard';
+import { EmptyState } from '../components/EmptyState';
+import { Skeleton, SkeletonList } from '../components/Skeleton';
+import { PlatformBadge } from '../components/Badge';
+import { Avatar } from '../components/Avatar';
 
 export function DashboardPage() {
   const { user, setUser } = useAuth();
@@ -12,6 +19,7 @@ export function DashboardPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [scheduledCount, setScheduledCount] = useState(0);
   const [publishedCount, setPublishedCount] = useState(0);
+  const [recentPosts, setRecentPosts] = useState<Array<{ id: string; title: string; body: string; status: string; scheduledAt: string | null; mediaCount: number }>>([]);
 
   useEffect(() => {
     let active = true;
@@ -34,6 +42,16 @@ export function DashboardPage() {
         }
         setScheduledCount(scheduled);
         setPublishedCount(published);
+        // Last 3 posts for recent list
+        const sorted = [...posts].sort((a, b) => new Date(b.scheduledAt || b.createdAt || '').getTime() - new Date(a.scheduledAt || a.createdAt || '').getTime());
+        setRecentPosts(sorted.slice(0, 3).map(p => ({
+          id: p.id,
+          title: p.title || p.body.slice(0, 50),
+          body: p.body.slice(0, 80),
+          status: p.status,
+          scheduledAt: p.scheduledAt,
+          mediaCount: p.media.length,
+        })));
       } catch {}
     })();
     return () => { active = false; };
@@ -64,97 +82,146 @@ export function DashboardPage() {
   };
 
   const active = channels.filter((c) => c.status === 'active');
+  const greeting = (() => {
+    const h = new Date().getHours();
+    if (h < 6) return 'Доброй ночи';
+    if (h < 12) return 'Доброе утро';
+    if (h < 18) return 'Добрый день';
+    return 'Добрый вечер';
+  })();
 
   return (
     <div className="flex min-h-screen">
       <Sidebar />
       <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
-        <div className="mb-10">
-          <h1 className="text-2xl font-bold text-white">{user?.name || 'коллега'}</h1>
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-white">{greeting}, {user?.name || 'коллега'}</h1>
           <p className="mt-1 text-sm text-graphite-500">
-            {active.length === 0 ? 'Подключите аккаунт для начала работы' : `${active.length} ${active.length === 1 ? 'аккаунт' : 'аккаунта'} подключено`}
+            {active.length === 0
+              ? 'Подключите аккаунт для начала работы'
+              : `${active.length} ${active.length === 1 ? 'аккаунт' : 'аккаунта'} подключено · ${scheduledCount} запланировано`
+            }
           </p>
         </div>
 
-        {active.length === 0 && !loadingChannels && (
-          <div className="card p-10 text-center max-w-lg mx-auto">
-            <div className="text-3xl mb-4">+</div>
-            <h2 className="text-lg font-semibold text-white mb-2">Подключите аккаунт</h2>
-            <p className="text-sm text-graphite-400 mb-6">Telegram, Pinterest, YouTube или Instagram</p>
-            <button onClick={() => setShowAddModal(true)} className="btn-primary">Подключить</button>
-          </div>
-        )}
+        {loadingChannels ? (
+          <>
+            <div className="grid gap-3 sm:grid-cols-3 mb-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="card p-4"><Skeleton className="h-8 w-16 mb-2" /><Skeleton className="h-3 w-24" /></div>
+              ))}
+            </div>
+            <SkeletonList count={2} />
+          </>
+        ) : active.length === 0 ? (
+          <EmptyState
+            icon="🚀"
+            title="Начните с подключения канала"
+            description="Добавьте Telegram, Pinterest, YouTube или Instagram для автоматической публикации"
+            action={
+              <button onClick={() => setShowAddModal(true)} className="btn-primary">
+                Подключить первый канал
+              </button>
+            }
+          />
+        ) : (
+          <>
+            {/* Stats */}
+            <div className="grid gap-3 sm:grid-cols-3 mb-8">
+              <StatCard label="Запланировано" value={scheduledCount} icon="📋" />
+              <StatCard label="Опубликовано" value={publishedCount} icon="✅" color="text-lime" />
+              <StatCard label="Аккаунтов" value={active.length} icon="🔗" />
+            </div>
 
-        {active.length > 0 && (
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-3">
+            {/* Quick actions */}
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Аккаунты</h2>
               <button onClick={() => setShowAddModal(true)} className="text-sm text-graphite-400 hover:text-lime transition">+ Добавить</button>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {active.map((ch) => {
-                const m: Record<string, { c: string; l: string }> = { telegram: { c: 'text-sky-400', l: 'TG' }, pinterest: { c: 'text-red-400', l: 'PI' }, youtube: { c: 'text-red-500', l: 'YT' }, instagram: { c: 'text-pink-400', l: 'IG' } };
-                const { c, l } = m[ch.platform] ?? { c: 'text-graphite-400', l: '??' };
-                return (
-                  <div key={ch.id} className="card p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className={`text-[10px] font-bold ${c} bg-graphite-800 rounded px-1.5 py-0.5 shrink-0`}>{l}</span>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium text-graphite-100 truncate">{ch.title}</div>
-                        <div className="text-[11px] text-graphite-500 truncate">{ch.username || ch.externalId}</div>
-                      </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+              {active.map((ch) => (
+                <div key={ch.id} className="card p-3 flex items-center justify-between card-interactive">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <PlatformBadge platform={ch.platform as any} />
+                    <Avatar name={ch.title} platform={ch.platform} size="sm" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-graphite-100 truncate">{ch.title}</div>
+                      <div className="text-[11px] text-graphite-500 truncate">@{ch.username || ch.externalId}</div>
                     </div>
-                    <button onClick={() => unlinkChannel(ch.id)} className="text-[11px] text-graphite-500 hover:text-red-400 transition ml-2">Удалить</button>
                   </div>
-                );
-              })}
+                  <button onClick={() => unlinkChannel(ch.id)} className="text-[11px] text-graphite-500 hover:text-red-400 transition ml-2">Удалить</button>
+                </div>
+              ))}
             </div>
-          </div>
-        )}
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[
-            { label: 'Запланировано', value: scheduledCount },
-            { label: 'Опубликовано', value: publishedCount },
-            { label: 'Аккаунтов', value: active.length },
-          ].map((s) => (
-            <div key={s.label} className="card p-4">
-              <div className="text-2xl font-bold text-graphite-100">{s.value}</div>
-              <div className="text-xs text-graphite-500 mt-0.5">{s.label}</div>
+            {/* Recent posts */}
+            {recentPosts.length > 0 && (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xs font-semibold text-graphite-500 uppercase tracking-wider">Недавние посты</h2>
+                  <Link to="/app/posts" className="text-sm text-graphite-400 hover:text-lime transition">Все посты →</Link>
+                </div>
+                <div className="space-y-2">
+                  {recentPosts.map((post) => (
+                    <Link key={post.id} to={`/app/posts/${post.id}`} className="card p-4 flex items-center gap-4 card-interactive block">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-graphite-100 truncate">{post.title}</div>
+                        <div className="text-xs text-graphite-400 mt-0.5">{post.body}</div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {post.mediaCount > 0 && <span className="text-[10px] text-graphite-500">📎 {post.mediaCount}</span>}
+                        <span className={`chip text-[10px] ${
+                          post.status === 'published' ? 'text-lime border-lime/30' :
+                          post.status === 'failed' ? 'text-red-400 border-red-400/30' :
+                          'text-graphite-400 border-graphite-600'
+                        }`}>
+                          {post.status === 'published' ? 'Опубликован' : post.status === 'failed' ? 'Ошибка' : 'Черновик'}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Create post CTA */}
+            <div className="mt-8">
+              <Link to="/app/posts/new" className="btn-primary w-full sm:w-auto">
+                + Создать пост
+              </Link>
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </main>
 
       {/* Add modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50" onClick={() => setShowAddModal(false)}>
-          <div className="card w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-white mb-4">Подключить</h3>
-            <div className="space-y-2">
-              {[
-                { label: 'Telegram', sub: 'Через бота', color: 'text-sky-400', icon: '✈', action: () => { setShowAddModal(false); startLink(); } },
-                { label: 'Pinterest', sub: 'OAuth', color: 'text-red-400', icon: '📌', action: () => { setShowAddModal(false); connectPinterest(); } },
-                { label: 'YouTube', sub: 'OAuth + видео', color: 'text-red-500', icon: '▶', action: () => { setShowAddModal(false); connectYouTube(); } },
-                { label: 'Instagram', sub: 'OAuth + Reels', color: 'text-pink-400', icon: '📷', action: () => { setShowAddModal(false); connectInstagram(); } },
-              ].map((p) => (
-                <button key={p.label} onClick={p.action} className="w-full flex items-center gap-3 p-3 rounded-xl border border-graphite-700/40 hover:border-graphite-600/60 transition text-left">
-                  <span className={`text-lg ${p.color}`}>{p.icon}</span>
-                  <div>
-                    <div className="font-medium text-white text-sm">{p.label}</div>
-                    <div className="text-[11px] text-graphite-500">{p.sub}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setShowAddModal(false)} className="btn-ghost mt-3 w-full">Закрыть</button>
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)}>
+        <div className="card p-6">
+          <h3 className="text-lg font-bold text-white mb-4">Подключить</h3>
+          <div className="space-y-2">
+            {[
+              { label: 'Telegram', sub: 'Через бота', color: 'hover:border-sky-400/40', icon: '✈', action: () => { setShowAddModal(false); startLink(); } },
+              { label: 'Pinterest', sub: 'OAuth', color: 'hover:border-red-400/40', icon: '📌', action: () => { setShowAddModal(false); connectPinterest(); } },
+              { label: 'YouTube', sub: 'OAuth + видео', color: 'hover:border-red-500/40', icon: '▶', action: () => { setShowAddModal(false); connectYouTube(); } },
+              { label: 'Instagram', sub: 'OAuth + Reels', color: 'hover:border-pink-400/40', icon: '📷', action: () => { setShowAddModal(false); connectInstagram(); } },
+            ].map((p) => (
+              <button key={p.label} onClick={p.action} className={`w-full flex items-center gap-3 p-3 rounded-xl border border-graphite-700/40 bg-graphite-850/50 transition text-left ${p.color}`}>
+                <span className="text-lg">{p.icon}</span>
+                <div>
+                  <div className="font-medium text-white text-sm">{p.label}</div>
+                  <div className="text-[11px] text-graphite-500">{p.sub}</div>
+                </div>
+              </button>
+            ))}
           </div>
+          <button onClick={() => setShowAddModal(false)} className="btn-ghost mt-4 w-full">Закрыть</button>
         </div>
-      )}
+      </Modal>
 
-      {showLinkModal && linkCode && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50">
-          <div className="card w-full max-w-md p-5">
+      <Modal open={showLinkModal} onClose={() => setShowLinkModal(false)} maxWidth="max-w-md">
+        {linkCode && (
+          <div className="card p-5">
             <h3 className="text-lg font-bold text-white mb-4">Telegram</h3>
             <ol className="space-y-2 text-sm text-graphite-300 list-decimal list-inside">
               <li>Найдите бота <a href={`https://t.me/${linkCode.botName}`} target="_blank" rel="noopener noreferrer" className="text-lime hover:underline font-medium">@{linkCode.botName}</a></li>
@@ -164,8 +231,8 @@ export function DashboardPage() {
             <p className="mt-3 text-[11px] text-graphite-500">Код действителен 10 минут</p>
             <button onClick={() => setShowLinkModal(false)} className="btn-ghost mt-3 w-full">Закрыть</button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }

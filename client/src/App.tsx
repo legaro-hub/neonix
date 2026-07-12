@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { ToastProvider } from './lib/toast';
 import { CookieBanner } from './components/CookieBanner';
 import { MobileNav } from './components/MobileNav';
 import { LandingPage } from './pages/LandingPage';
@@ -30,7 +31,7 @@ import { ProtectedRoute } from './lib/ProtectedRoute';
 
 export default function App() {
   return (
-    <>
+    <ToastProvider>
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
@@ -64,6 +65,6 @@ export default function App() {
     </Routes>
     <CookieBanner />
     <MobileNav />
-    </>
+    </ToastProvider>
   );
 }

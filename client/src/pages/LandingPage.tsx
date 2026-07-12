@@ -241,6 +241,34 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Social Proof */}
+      <section className="container-app py-16 sm:py-20">
+        <div className="mx-auto max-w-2xl text-center mb-12">
+          <h2 className="font-display text-2xl font-bold text-white sm:text-3xl">Нам доверяют</h2>
+          <p className="mt-3 text-graphite-400">Контент-мейкеры и команды по всему миру</p>
+        </div>
+        <div className="grid gap-6 sm:grid-cols-3">
+          {[
+            { name: 'Алексей К.', role: 'Блогер, 50K подписчиков', text: 'Наконец-то могу планировать посты на неделю вперёд. Экономлю по 3 часа в день.', rating: 5 },
+            { name: 'Мария В.', role: 'SMM-агентство', text: 'Управляем 30+ каналами клиентов из одного интерфейса. Календарь — спасение.', rating: 5 },
+            { name: 'Дмитрий С.', role: 'YouTube + Telegram', text: 'Кросспостинг между платформами работает безупречно. Рекомендую.', rating: 5 },
+          ].map((review) => (
+            <div key={review.name} className="card p-6 hover-lift">
+              <div className="flex items-center gap-1 mb-3">
+                {Array.from({ length: review.rating }).map((_, i) => (
+                  <svg key={i} width="14" height="14" viewBox="0 0 24 24" fill="#d4ff3a"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                ))}
+              </div>
+              <p className="text-sm text-graphite-300 leading-relaxed mb-4">"{review.text}"</p>
+              <div>
+                <div className="text-sm font-semibold text-white">{review.name}</div>
+                <div className="text-xs text-graphite-500">{review.role}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* CTA */}
       <section className="container-app pb-24">
         <div className="card relative overflow-hidden p-10 text-center sm:p-16 cyber-grid">

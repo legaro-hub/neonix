@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { api } from '../lib/api';
 import type { Post, SocialAccount } from '../lib/types';
+import Modal from '../components/Modal';
 
 const MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const DAY_NAMES = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -16,6 +17,7 @@ export function CalendarPage() {
   const [, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [dayPosts, setDayPosts] = useState<Post[]>([]);
+  const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
 
   const month = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
 
@@ -101,7 +103,10 @@ export function CalendarPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-2xl font-bold text-white">Календарь</h1>
           <div className="flex items-center gap-2">
-            <button onClick={() => navigate('/app/bulk-upload')} className="btn-ghost text-sm">
+            <button onClick={() => { setCurrentDate(new Date()); }} className="btn-ghost text-sm">
+              Сегодня
+            </button>
+            <button onClick={() => navigate('/app/bulk-upload')} className="btn-ghost text-sm hidden sm:inline-flex">
               📥 Массовая загрузка
             </button>
             <button onClick={() => navigate('/app/posts/new')} className="btn-primary text-sm">
@@ -126,9 +131,25 @@ export function CalendarPage() {
         <div className="card overflow-hidden">
           <div className="flex items-center justify-between border-b border-graphite-800 px-6 py-4">
             <button onClick={prevMonth} className="btn-ghost px-3 py-2 text-sm">←</button>
-            <h2 className="font-display text-lg font-bold text-white">
-              {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </h2>
+            <div className="flex items-center gap-4">
+              <h2 className="font-display text-lg font-bold text-white">
+                {MONTH_NAMES[currentDate.getMonth()]} {currentDate.getFullYear()}
+              </h2>
+              <div className="hidden sm:flex gap-1 rounded-xl border border-graphite-700 bg-graphite-850 p-0.5">
+                <button
+                  onClick={() => setViewMode('month')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition ${viewMode === 'month' ? 'bg-graphite-700 text-white' : 'text-graphite-400 hover:text-graphite-200'}`}
+                >
+                  Месяц
+                </button>
+                <button
+                  onClick={() => setViewMode('week')}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition ${viewMode === 'week' ? 'bg-graphite-700 text-white' : 'text-graphite-400 hover:text-graphite-200'}`}
+                >
+                  Неделя
+                </button>
+              </div>
+            </div>
             <button onClick={nextMonth} className="btn-ghost px-3 py-2 text-sm">→</button>
           </div>
 
@@ -203,12 +224,10 @@ export function CalendarPage() {
         <DayModal
           date={selectedDay}
           posts={dayPosts}
-          channels={channels}
           onClose={() => { setSelectedDay(null); setDayPosts([]); }}
           onEdit={(postId) => navigate(`/app/posts/${postId}`)}
           onDelete={deletePost}
           onNewPost={() => navigate(`/app/posts/new?date=${selectedDay.toISOString().slice(0, 10)}`)}
-          onRefresh={loadData}
         />
       )}
     </div>
@@ -225,18 +244,16 @@ function DayModal({
 }: {
   date: Date;
   posts: Post[];
-  channels: SocialAccount[];
   onClose: () => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   onNewPost: () => void;
-  onRefresh: () => void;
 }) {
   const dateStr = `${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm">
-      <div className="card w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6">
+    <Modal open={true} onClose={onClose} maxWidth="max-w-2xl">
+      <div className="card p-6 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-lg font-bold text-white">{dateStr}</h3>
           <button onClick={onClose} className="text-graphite-400 hover:text-white text-lg">✕</button>
@@ -292,6 +309,6 @@ function DayModal({
           </div>
         )}
       </div>
-    </div>
+    </Modal>
   );
 }

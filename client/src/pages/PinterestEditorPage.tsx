@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { api, HttpError } from '../lib/api';
 import type { SocialAccount } from '../lib/types';
+import Modal from '../components/Modal';
 
 export function PinterestEditorPage() {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
@@ -289,32 +290,30 @@ export function PinterestEditorPage() {
         )}
 
         {/* Connect Modal */}
-        {showConnectModal && (
-          <div className="fixed inset-0 z-50 grid place-items-center bg-black/50" onClick={() => setShowConnectModal(false)}>
-            <div className="card w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-lg font-bold text-white mb-4">Подключить Pinterest</h3>
-              <form onSubmit={handleConnect} className="space-y-3">
-                <div>
-                  <label className="label">Cookies Pinterest</label>
-                  <textarea className="input text-xs py-2 min-h-[80px] resize-none font-mono" value={cookies} onChange={(e) => setCookies(e.target.value)} placeholder='[{"name":"_auth","value":"...","domain":".pinterest.com"}]' />
-                  <p className="text-[10px] text-graphite-500 mt-1">Извлеките из браузера через расширение «Cookie Editor» или DevTools</p>
-                </div>
-                <div>
-                  <label className="label">Username</label>
-                  <input className="input text-xs py-2" value={connectUsername} onChange={(e) => setConnectUsername(e.target.value)} placeholder="pinterest_username" />
-                </div>
-                <div>
-                  <label className="label">Proxy (необязательно)</label>
-                  <input className="input text-xs py-2" value={proxy} onChange={(e) => setProxy(e.target.value)} placeholder="http://user:pass@host:port" />
-                </div>
-                <div className="flex gap-2">
-                  <button type="submit" disabled={connecting} className="btn-primary text-sm flex-1">{connecting ? 'Подключение...' : 'Подключить'}</button>
-                  <button type="button" onClick={() => setShowConnectModal(false)} className="btn-ghost text-sm">Закрыть</button>
-                </div>
-              </form>
-            </div>
+        <Modal open={showConnectModal} onClose={() => setShowConnectModal(false)} maxWidth="max-w-md">
+          <div className="card p-5">
+            <h3 className="text-lg font-bold text-white mb-4">Подключить Pinterest</h3>
+            <form onSubmit={handleConnect} className="space-y-3">
+              <div>
+                <label className="label">Cookies Pinterest</label>
+                <textarea className="input text-xs py-2 min-h-[80px] resize-none font-mono" value={cookies} onChange={(e) => setCookies(e.target.value)} placeholder='[{"name":"_auth","value":"...","domain":".pinterest.com"}]' />
+                <p className="text-[10px] text-graphite-500 mt-1">Извлеките из браузера через расширение «Cookie Editor» или DevTools</p>
+              </div>
+              <div>
+                <label className="label">Username</label>
+                <input className="input text-xs py-2" value={connectUsername} onChange={(e) => setConnectUsername(e.target.value)} placeholder="pinterest_username" />
+              </div>
+              <div>
+                <label className="label">Proxy (необязательно)</label>
+                <input className="input text-xs py-2" value={proxy} onChange={(e) => setProxy(e.target.value)} placeholder="http://user:pass@host:port" />
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" disabled={connecting} className="btn-primary text-sm flex-1">{connecting ? 'Подключение...' : 'Подключить'}</button>
+                <button type="button" onClick={() => setShowConnectModal(false)} className="btn-ghost text-sm">Закрыть</button>
+              </div>
+            </form>
           </div>
-        )}
+        </Modal>
       </main>
     </div>
   );

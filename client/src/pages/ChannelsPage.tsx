@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { api, HttpError } from '../lib/api';
 import type { SocialAccount } from '../lib/types';
+import Modal from '../components/Modal';
 
 const TgIcon = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -171,21 +172,52 @@ export function ChannelsPage() {
     setPostpinConnecting(false);
   };
 
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
   const tgChannels = channels.filter((c) => c.platform === 'telegram' && c.status === 'active');
   const piAccounts = channels.filter((c) => c.platform === 'pinterest' && c.status === 'active');
   const ytAccounts = channels.filter((c) => c.platform === 'youtube' && c.status === 'active');
   const igAccounts = channels.filter((c) => c.platform === 'instagram' && c.status === 'active');
   const inactiveChannels = channels.filter((c) => c.status !== 'active');
 
+  const PLATFORM_TABS = [
+    { key: 'all', label: 'Все', count: channels.length },
+    { key: 'telegram', label: 'TG', count: tgChannels.length, color: 'text-sky-400' },
+    { key: 'pinterest', label: 'PI', count: piAccounts.length, color: 'text-red-400' },
+    { key: 'youtube', label: 'YT', count: ytAccounts.length, color: 'text-red-500' },
+    { key: 'instagram', label: 'IG', count: igAccounts.length, color: 'text-pink-400' },
+  ];
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
       <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">Аккаунты</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Аккаунты</h1>
+            <p className="text-xs text-graphite-500 mt-1">{channels.length} подключено · {inactiveChannels.length} отключено</p>
+          </div>
           <button onClick={() => setShowAddModal(true)} className="btn-primary text-sm">
             + Подключить
           </button>
+        </div>
+
+        {/* Platform filter tabs */}
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {PLATFORM_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setPlatformFilter(tab.key)}
+              className={`rounded-xl px-4 py-2 text-sm transition-all duration-200 ${
+                platformFilter === tab.key
+                  ? 'bg-lime/15 text-lime border border-lime/30'
+                  : 'border border-graphite-700 bg-graphite-850 text-graphite-300 hover:border-graphite-600'
+              }`}
+            >
+              {tab.color && <span className={`${tab.color} font-bold`}>{tab.label}</span>}
+              {!tab.color && tab.label}
+              {tab.count > 0 && <span className="ml-1.5 text-graphite-500">{tab.count}</span>}
+            </button>
+          ))}
         </div>
 
         {loading ? (
@@ -212,7 +244,7 @@ export function ChannelsPage() {
         ) : (
           <div className="space-y-5">
             {/* Telegram */}
-            {tgChannels.length > 0 && (
+            {(platformFilter === 'all' || platformFilter === 'telegram') && tgChannels.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-[10px] font-bold text-sky-400 bg-sky-400/10 rounded px-1.5 py-0.5">TG</span>
@@ -227,7 +259,7 @@ export function ChannelsPage() {
             )}
 
             {/* Pinterest */}
-            {piAccounts.length > 0 && (
+            {(platformFilter === 'all' || platformFilter === 'pinterest') && piAccounts.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span onClick={handleSecretPiClick} className="text-[10px] font-bold text-red-400 bg-red-400/10 rounded px-1.5 py-0.5 cursor-default select-none">PI</span>
@@ -242,7 +274,7 @@ export function ChannelsPage() {
             )}
 
             {/* YouTube */}
-            {ytAccounts.length > 0 && (
+            {(platformFilter === 'all' || platformFilter === 'youtube') && ytAccounts.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-[10px] font-bold text-red-500 bg-red-500/10 rounded px-1.5 py-0.5">YT</span>
@@ -257,7 +289,7 @@ export function ChannelsPage() {
             )}
 
             {/* Instagram */}
-            {igAccounts.length > 0 && (
+            {(platformFilter === 'all' || platformFilter === 'instagram') && igAccounts.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-[10px] font-bold text-pink-400 bg-pink-400/10 rounded px-1.5 py-0.5">IG</span>
@@ -295,49 +327,47 @@ export function ChannelsPage() {
       </main>
 
       {/* Add modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
-          <div className="card w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-display text-lg font-bold text-white mb-4">Подключить</h3>
-            <div className="space-y-2">
-              <button onClick={() => { setShowAddModal(false); startLink(); }} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-sky-400/40 transition text-left">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500/15 text-sky-400 shrink-0"><TgIcon /></div>
-                <div>
-                  <div className="font-semibold text-white text-sm">Telegram</div>
-                  <div className="text-xs text-graphite-400">Через бота</div>
-                </div>
-              </button>
-              <button onClick={(e) => { setShowAddModal(false); if (e.shiftKey) { setShowPostpinModal(true); } else { connectPinterest(); } }} disabled={connectingPinterest} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-red-400/40 transition text-left">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-red-500/15 text-red-400 shrink-0"><PIcon /></div>
-                <div>
-                  <div className="font-semibold text-white text-sm">{connectingPinterest ? 'Подключение...' : 'Pinterest'}</div>
-                  <div className="text-xs text-graphite-400">OAuth</div>
-                </div>
-              </button>
-              <button onClick={() => { setShowAddModal(false); connectYouTube(); }} disabled={connectingYoutube} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-red-500/40 transition text-left">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-red-500/15 text-red-500 shrink-0"><YTIcon /></div>
-                <div>
-                  <div className="font-semibold text-white text-sm">{connectingYoutube ? 'Подключение...' : 'YouTube'}</div>
-                  <div className="text-xs text-graphite-400">OAuth + загрузка видео</div>
-                </div>
-              </button>
-              <button onClick={() => { setShowAddModal(false); connectInstagram(); }} disabled={connectingInstagram} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-pink-400/40 transition text-left">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-purple-500/15 to-pink-500/15 text-pink-400 shrink-0"><IGIcon /></div>
-                <div>
-                  <div className="font-semibold text-white text-sm">{connectingInstagram ? 'Подключение...' : 'Instagram'}</div>
-                  <div className="text-xs text-graphite-400">OAuth + Reels/Carousels</div>
-                </div>
-              </button>
-            </div>
-            <button onClick={() => setShowAddModal(false)} className="btn-ghost mt-4 w-full">Закрыть</button>
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)}>
+        <div className="card p-6">
+          <h3 className="font-display text-lg font-bold text-white mb-4">Подключить</h3>
+          <div className="space-y-2">
+            <button onClick={() => { setShowAddModal(false); startLink(); }} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-sky-400/40 transition text-left">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500/15 text-sky-400 shrink-0"><TgIcon /></div>
+              <div>
+                <div className="font-semibold text-white text-sm">Telegram</div>
+                <div className="text-xs text-graphite-400">Через бота</div>
+              </div>
+            </button>
+            <button onClick={(e) => { setShowAddModal(false); if (e.shiftKey) { setShowPostpinModal(true); } else { connectPinterest(); } }} disabled={connectingPinterest} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-red-400/40 transition text-left">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-red-500/15 text-red-400 shrink-0"><PIcon /></div>
+              <div>
+                <div className="font-semibold text-white text-sm">{connectingPinterest ? 'Подключение...' : 'Pinterest'}</div>
+                <div className="text-xs text-graphite-400">OAuth</div>
+              </div>
+            </button>
+            <button onClick={() => { setShowAddModal(false); connectYouTube(); }} disabled={connectingYoutube} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-red-500/40 transition text-left">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-red-500/15 text-red-500 shrink-0"><YTIcon /></div>
+              <div>
+                <div className="font-semibold text-white text-sm">{connectingYoutube ? 'Подключение...' : 'YouTube'}</div>
+                <div className="text-xs text-graphite-400">OAuth + загрузка видео</div>
+              </div>
+            </button>
+            <button onClick={() => { setShowAddModal(false); connectInstagram(); }} disabled={connectingInstagram} className="w-full flex items-center gap-4 p-3 rounded-xl border border-graphite-700/50 bg-graphite-850/50 hover:border-pink-400/40 transition text-left">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-purple-500/15 to-pink-500/15 text-pink-400 shrink-0"><IGIcon /></div>
+              <div>
+                <div className="font-semibold text-white text-sm">{connectingInstagram ? 'Подключение...' : 'Instagram'}</div>
+                <div className="text-xs text-graphite-400">OAuth + Reels/Carousels</div>
+              </div>
+            </button>
           </div>
+          <button onClick={() => setShowAddModal(false)} className="btn-ghost mt-4 w-full">Закрыть</button>
         </div>
-      )}
+      </Modal>
 
       {/* TG link modal */}
-      {showLinkModal && linkCode && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm">
-          <div className="card w-full max-w-md p-6">
+      <Modal open={showLinkModal && !!linkCode} onClose={() => setShowLinkModal(false)} maxWidth="max-w-md">
+        {linkCode && (
+          <div className="card p-6">
             <h3 className="font-display text-lg font-bold text-white mb-4">Подключение Telegram</h3>
             <ol className="space-y-3 text-sm text-graphite-300 list-decimal list-inside">
               <li>Откройте Telegram, найдите бота <a href={`https://t.me/${linkCode.botName}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-lime hover:underline">@{linkCode.botName}</a></li>
@@ -347,60 +377,56 @@ export function ChannelsPage() {
             <p className="mt-3 text-xs text-graphite-400">Код действителен 10 минут. Канал привяжется автоматически.</p>
             <button onClick={() => setShowLinkModal(false)} className="btn-ghost mt-4 w-full">Закрыть</button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Board select modal */}
-      {showBoardSelect && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm" onClick={() => setShowBoardSelect(false)}>
-          <div className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-display text-lg font-bold text-white mb-4">Выберите доску</h3>
-            {loadingBoards ? (
-              <div className="text-center py-8 text-graphite-400">Загрузка досок...</div>
-            ) : pinterestBoards.length === 0 ? (
-              <div className="text-center py-8 text-graphite-400">Нет досок. Создайте доску в Pinterest.</div>
-            ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {pinterestBoards.map((b: any) => (
-                  <button key={b.id} onClick={() => selectBoard(b.id)} className="w-full text-left p-3 rounded-xl border border-graphite-700 bg-graphite-850 hover:border-lime/40 transition">
-                    <div className="font-semibold text-sm text-white">{b.name}</div>
-                    <div className="text-xs text-graphite-400">{b.pin_count ?? 0} пинов</div>
-                  </button>
-                ))}
-              </div>
-            )}
-            <button onClick={() => setShowBoardSelect(false)} className="btn-ghost mt-4 w-full">Закрыть</button>
-          </div>
+      <Modal open={showBoardSelect} onClose={() => setShowBoardSelect(false)} maxWidth="max-w-md">
+        <div className="card p-6">
+          <h3 className="font-display text-lg font-bold text-white mb-4">Выберите доску</h3>
+          {loadingBoards ? (
+            <div className="text-center py-8 text-graphite-400">Загрузка досок...</div>
+          ) : pinterestBoards.length === 0 ? (
+            <div className="text-center py-8 text-graphite-400">Нет досок. Создайте доску в Pinterest.</div>
+          ) : (
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {pinterestBoards.map((b: any) => (
+                <button key={b.id} onClick={() => selectBoard(b.id)} className="w-full text-left p-3 rounded-xl border border-graphite-700 bg-graphite-850 hover:border-lime/40 transition">
+                  <div className="font-semibold text-sm text-white">{b.name}</div>
+                  <div className="text-xs text-graphite-400">{b.pin_count ?? 0} пинов</div>
+                </button>
+              ))}
+            </div>
+          )}
+          <button onClick={() => setShowBoardSelect(false)} className="btn-ghost mt-4 w-full">Закрыть</button>
         </div>
-      )}
+      </Modal>
 
       {/* PostPin connect modal (hidden) */}
-      {showPostpinModal && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-sm" onClick={() => setShowPostpinModal(false)}>
-          <div className="card w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <h3 className="font-display text-lg font-bold text-white mb-4">Подключение аккаунта</h3>
-            <form onSubmit={handlePostpinConnect} className="space-y-3">
-              <div>
-                <label className="label">Cookies</label>
-                <textarea className="input text-xs py-2 min-h-[80px] resize-none font-mono" value={postpinCookies} onChange={(e) => setPostpinCookies(e.target.value)} placeholder='[{"name":"_auth","value":"...","domain":".pinterest.com"}]' />
-                <p className="text-[10px] text-graphite-500 mt-1">Извлеките из браузера через расширение «Cookie Editor» или DevTools</p>
-              </div>
-              <div>
-                <label className="label">Username</label>
-                <input className="input text-xs py-2" value={postpinUsername} onChange={(e) => setPostpinUsername(e.target.value)} placeholder="pinterest_username" />
-              </div>
-              <div>
-                <label className="label">Proxy (необязательно)</label>
-                <input className="input text-xs py-2" value={postpinProxy} onChange={(e) => setPostpinProxy(e.target.value)} placeholder="http://user:pass@host:port" />
-              </div>
-              <div className="flex gap-2">
-                <button type="submit" disabled={postpinConnecting} className="btn-primary text-sm flex-1">{postpinConnecting ? 'Подключение...' : 'Подключить'}</button>
-                <button type="button" onClick={() => setShowPostpinModal(false)} className="btn-ghost text-sm">Закрыть</button>
-              </div>
-            </form>
-          </div>
+      <Modal open={showPostpinModal} onClose={() => setShowPostpinModal(false)} maxWidth="max-w-md">
+        <div className="card p-6">
+          <h3 className="font-display text-lg font-bold text-white mb-4">Подключение аккаунта</h3>
+          <form onSubmit={handlePostpinConnect} className="space-y-3">
+            <div>
+              <label className="label">Cookies</label>
+              <textarea className="input text-xs py-2 min-h-[80px] resize-none font-mono" value={postpinCookies} onChange={(e) => setPostpinCookies(e.target.value)} placeholder='[{"name":"_auth","value":"...","domain":".pinterest.com"}]' />
+              <p className="text-[10px] text-graphite-500 mt-1">Извлеките из браузера через расширение «Cookie Editor» или DevTools</p>
+            </div>
+            <div>
+              <label className="label">Username</label>
+              <input className="input text-xs py-2" value={postpinUsername} onChange={(e) => setPostpinUsername(e.target.value)} placeholder="pinterest_username" />
+            </div>
+            <div>
+              <label className="label">Proxy (необязательно)</label>
+              <input className="input text-xs py-2" value={postpinProxy} onChange={(e) => setPostpinProxy(e.target.value)} placeholder="http://user:pass@host:port" />
+            </div>
+            <div className="flex gap-2">
+              <button type="submit" disabled={postpinConnecting} className="btn-primary text-sm flex-1">{postpinConnecting ? 'Подключение...' : 'Подключить'}</button>
+              <button type="button" onClick={() => setShowPostpinModal(false)} className="btn-ghost text-sm">Закрыть</button>
+            </div>
+          </form>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }

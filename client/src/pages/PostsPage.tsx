@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { api } from '../lib/api';
 import type { Post, SocialAccount } from '../lib/types';
+import Modal from '../components/Modal';
 
 type Filter = 'all' | 'scheduled' | 'published' | 'draft' | 'failed';
 
@@ -45,84 +46,82 @@ function renderMd(text: string): string {
 
 function TelegramPreview({ post, onClose }: { post: Post; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-[420px] mx-4" onClick={(e) => e.stopPropagation()}>
-        <div className="rounded-2xl overflow-hidden shadow-2xl">
-          {/* Telegram-style header */}
-          <div className="bg-[#17212b] px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-[#2b5278] flex items-center justify-center text-white font-bold text-sm">
-                {(post.title || post.body).charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-white">{post.title || 'Без заголовка'}</div>
-                <div className="text-xs text-[#6c7883]">
-                  {post.scheduledAt ? new Date(post.scheduledAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Черновик'}
-                </div>
+    <Modal open={true} onClose={onClose} maxWidth="max-w-[420px]" preventBackdropClose>
+      <div className="rounded-2xl overflow-hidden shadow-2xl">
+        {/* Telegram-style header */}
+        <div className="bg-[#17212b] px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-[#2b5278] flex items-center justify-center text-white font-bold text-sm">
+              {(post.title || post.body).charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-white">{post.title || 'Без заголовка'}</div>
+              <div className="text-xs text-[#6c7883]">
+                {post.scheduledAt ? new Date(post.scheduledAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Черновик'}
               </div>
             </div>
-            <button onClick={onClose} className="text-[#6c7883] hover:text-white text-xl">✕</button>
           </div>
+          <button onClick={onClose} className="text-[#6c7883] hover:text-white text-xl">✕</button>
+        </div>
 
-          {/* Telegram-style message */}
-          <div className="bg-[#0e1621] p-4">
-            <div className="rounded-xl bg-[#182533] p-3 max-w-full">
-              {/* Media gallery */}
-              {post.media.length > 0 && (
-                <div className={`mb-2 ${post.media.length > 1 ? 'grid grid-cols-2 gap-1' : ''} rounded-lg overflow-hidden`}>
-                  {post.media.slice(0, 4).map((m) => (
-                    <div key={m.id} className="relative bg-[#0e1621]">
-                      {m.kind === 'video' ? (
-                        <div className="aspect-video flex items-center justify-center bg-[#0e1621] text-[#6c7883]">
-                          <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                        </div>
-                      ) : (
-                        <img
-                          src={`/api/media/file/${m.id}`}
-                          alt={m.filename}
-                          className="w-full aspect-video object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            const parent = (e.target as HTMLImageElement).parentElement;
-                            if (parent) {
-                              const fallback = document.createElement('div');
-                              fallback.className = 'aspect-video flex items-center justify-center bg-[#0e1621] text-[#6c7883]';
-                              fallback.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
-                              parent.appendChild(fallback);
-                            }
-                          }}
-                        />
-                      )}
-                    </div>
-                  ))}
-                  {post.media.length > 4 && (
-                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
-                      +{post.media.length - 4}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Text */}
-              <div
-                className="text-sm text-white leading-relaxed break-words"
-                dangerouslySetInnerHTML={{ __html: renderMd(post.body) }}
-              />
-            </div>
-          </div>
-
-          {/* Status bar */}
-          <div className="bg-[#17212b] px-4 py-3 flex flex-wrap gap-2">
-            {post.publications.map((pub) => (
-              <div key={pub.id} className="flex items-center gap-1.5">
-                <span className={`h-2 w-2 rounded-full ${pub.status === 'published' ? 'bg-[#4fae4e]' : pub.status === 'failed' ? 'bg-[#e53935]' : 'bg-[#eab308]'}`} />
-                <span className="text-xs text-[#6c7883]">{pub.socialAccount.title}</span>
+        {/* Telegram-style message */}
+        <div className="bg-[#0e1621] p-4">
+          <div className="rounded-xl bg-[#182533] p-3 max-w-full">
+            {/* Media gallery */}
+            {post.media.length > 0 && (
+              <div className={`mb-2 ${post.media.length > 1 ? 'grid grid-cols-2 gap-1' : ''} rounded-lg overflow-hidden`}>
+                {post.media.slice(0, 4).map((m) => (
+                  <div key={m.id} className="relative bg-[#0e1621]">
+                    {m.kind === 'video' ? (
+                      <div className="aspect-video flex items-center justify-center bg-[#0e1621] text-[#6c7883]">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                      </div>
+                    ) : (
+                      <img
+                        src={`/api/media/file/${m.id}`}
+                        alt={m.filename}
+                        className="w-full aspect-video object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLImageElement).parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'aspect-video flex items-center justify-center bg-[#0e1621] text-[#6c7883]';
+                            fallback.innerHTML = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+                            parent.appendChild(fallback);
+                          }
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+                {post.media.length > 4 && (
+                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
+                    +{post.media.length - 4}
+                  </div>
+                )}
               </div>
-            ))}
+            )}
+
+            {/* Text */}
+            <div
+              className="text-sm text-white leading-relaxed break-words"
+              dangerouslySetInnerHTML={{ __html: renderMd(post.body) }}
+            />
           </div>
         </div>
+
+        {/* Status bar */}
+        <div className="bg-[#17212b] px-4 py-3 flex flex-wrap gap-2">
+          {post.publications.map((pub) => (
+            <div key={pub.id} className="flex items-center gap-1.5">
+              <span className={`h-2 w-2 rounded-full ${pub.status === 'published' ? 'bg-[#4fae4e]' : pub.status === 'failed' ? 'bg-[#e53935]' : 'bg-[#eab308]'}`} />
+              <span className="text-xs text-[#6c7883]">{pub.socialAccount.title}</span>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -135,6 +134,7 @@ export function PostsPage() {
   const [channels, setChannels] = useState<SocialAccount[]>([]);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [previewPost, setPreviewPost] = useState<Post | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   useEffect(() => {
     let active = true;
@@ -182,8 +182,29 @@ export function PostsPage() {
       <Sidebar />
       <main className="flex-1 p-6 pb-20 lg:pb-10 lg:p-10">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-2xl font-bold text-white">Посты</h1>
-          <button onClick={() => navigate('/app/posts/new')} className="btn-primary text-sm">+ Новый пост</button>
+          <div>
+            <h1 className="font-display text-2xl font-bold text-white">Посты</h1>
+            <p className="text-xs text-graphite-500 mt-1">{posts.length} всего</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="hidden sm:flex gap-1 rounded-xl border border-graphite-700 bg-graphite-850 p-0.5">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-1.5 rounded-lg transition ${viewMode === 'list' ? 'bg-graphite-700 text-white' : 'text-graphite-400 hover:text-graphite-200'}`}
+                title="Список"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg transition ${viewMode === 'grid' ? 'bg-graphite-700 text-white' : 'text-graphite-400 hover:text-graphite-200'}`}
+                title="Сетка"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </button>
+            </div>
+            <button onClick={() => navigate('/app/posts/new')} className="btn-primary text-sm">+ Новый пост</button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 mb-6 flex-wrap">
@@ -237,7 +258,7 @@ export function PostsPage() {
             <button onClick={() => navigate('/app/posts/new')} className="btn-primary">Создать пост</button>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className={viewMode === 'grid' ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3' : 'space-y-3'}>
             {filtered.map((post) => {
               const status = getPostStatus(post);
               const statusInfo = STATUS_LABELS[status] || STATUS_LABELS.draft;

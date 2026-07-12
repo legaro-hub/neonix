@@ -414,3 +414,113 @@
 .stagger > *:nth-child(8) { animation-delay: 0.4s; }
 .stagger > *:nth-child(9) { animation-delay: 0.45s; }
 .stagger > *:nth-child(10) { animation-delay: 0.5s; }
+
+/* === Skeleton Loading === */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(35, 40, 48, 0.5) 25%,
+    rgba(46, 52, 61, 0.5) 50%,
+    rgba(35, 40, 48, 0.5) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+/* === Toast Animations === */
+.toast-enter {
+  animation: slide-in-right 0.3s ease-out forwards;
+}
+.toast-exit {
+  animation: slide-out-right 0.2s ease-in forwards;
+}
+
+/* === Page Transition === */
+.page-enter {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* === Focus Visible === */
+*:focus-visible {
+  outline: 2px solid rgba(212, 255, 58, 0.5);
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* === Scrollbar (Firefox) === */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(35, 40, 48, 0.5) transparent;
+}
+
+/* === Active nav indicator === */
+.nav-active-indicator {
+  position: relative;
+}
+.nav-active-indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: #d4ff3a;
+  border-radius: 0 2px 2px 0;
+}
+
+/* === Smooth card hover === */
+.card-interactive {
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+.card-interactive:hover {
+  border-color: rgba(46, 52, 61, 0.8);
+  background-color: rgba(17, 20, 24, 0.5);
+}
+
+/* === Platform pill === */
+.platform-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* === Modal Animations === */
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modal-overlay-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+@keyframes modal-panel-in {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes modal-panel-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.95) translateY(8px); }
+}
+
+.modal-overlay-open {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  animation: modal-overlay-in 0.2s ease-out forwards;
+}
+.modal-overlay-closing {
+  background: rgba(0, 0, 0, 0.5);
+  animation: modal-overlay-out 0.15s ease-in forwards;
+}
+.modal-panel-open {
+  animation: modal-panel-in 0.2s ease-out forwards;
+}
+.modal-panel-closing {
+  animation: modal-panel-out 0.15s ease-in forwards;
+}
